@@ -273,7 +273,7 @@ get_files() {
   local src_dir="$1"; shift
   local -a file_args=("$@")
   local first_arg="$1"  # Capture the first argument directly
-  local -a files_to_bundle=()
+  local -a files_to_bundle=("$@")  # Initialize with all arguments
 
   log "File arguments count: ${#file_args[@]}"
   log "File argument 0: '${file_args[0]}'"
@@ -330,12 +330,18 @@ get_files() {
         else
           # If not a valid list file, add the file itself to bundle
           log "Not a valid list file, adding as a single file"
-          files_to_bundle=("$arg")
+          files_to_bundle=("$first_arg")
+          log "files_to_bundle[0]: '${files_to_bundle[0]}'"
+          # Set the global FILES_TO_BUNDLE variable
+          FILES_TO_BUNDLE=("${files_to_bundle[@]}")
+          log "FILES_TO_BUNDLE[0]: '${FILES_TO_BUNDLE[0]}'"
         fi
       else
         # Not a text file, just add it directly
         log "File is not a text file, adding directly: $arg"
-        files_to_bundle=("$arg")
+        files_to_bundle=("$first_arg")
+        # Set the global FILES_TO_BUNDLE variable
+        FILES_TO_BUNDLE=("${files_to_bundle[@]}")
       fi
 
       return 0

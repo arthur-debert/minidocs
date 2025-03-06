@@ -1,0 +1,74 @@
+#!/usr/bin/env zunit
+# shellcheck shell=bash
+# shellcheck disable=SC2154  # state is set by the zunit framework
+
+@test 'Test minidocs with a single file path' {
+  # Test with a single file path
+  local test_file="${ZUNIT_DIR}/_support/fixtures/fixture1.txt"
+
+  # Verify the test file exists
+  run test -f "${test_file}"
+  assert "${state}" equals 0
+
+  # Run minidocs with a single file
+  run "${minidocs}" "${test_file}"
+
+  # Check exit status
+  assert "${state}" equals 0
+
+  # Verify output contains content from the file
+  assert "${output}" contains "This is the first test fixture file"
+
+  # Verify file header is included
+  assert "${output}" contains "fixture1.txt"
+}
+
+@test 'Test minidocs with multiple file paths' {
+  # Test with multiple file paths
+  local test_file1="${ZUNIT_DIR}/_support/fixtures/fixture1.txt"
+  local test_file2="${ZUNIT_DIR}/_support/fixtures/fixture2.txt"
+
+  # Verify the test files exist
+  run test -f "${test_file1}"
+  assert "${state}" equals 0
+
+  run test -f "${test_file2}"
+  assert "${state}" equals 0
+
+  # Run minidocs with multiple files
+  run "${minidocs}" "${test_file1}" "${test_file2}"
+
+  # Check exit status
+  assert "${state}" equals 0
+
+  # Verify output contains content from both files
+  assert "${output}" contains "This is the first test fixture file"
+  assert "${output}" contains "This is the second test fixture file"
+
+  # Verify file headers are included
+  assert "${output}" contains "fixture1.txt"
+  assert "${output}" contains "fixture2.txt"
+}
+
+@test 'Test minidocs with a directory path' {
+  # Test with a directory path
+  local test_dir="${ZUNIT_DIR}/_support/fixtures"
+
+  # Verify the directory exists
+  run test -d "${test_dir}"
+  assert "${state}" equals 0
+
+  # Run minidocs with a directory
+  run "${minidocs}" "${test_dir}"
+
+  # Check exit status
+  assert "${state}" equals 0
+
+  # Verify output contains content from all .txt and .md files in the directory
+  assert "${output}" contains "This is the first test fixture file"
+  assert "${output}" contains "This is the second test fixture file"
+
+  # Verify file headers are included
+  assert "${output}" contains "fixture1.txt"
+  assert "${output}" contains "fixture2.txt"
+}

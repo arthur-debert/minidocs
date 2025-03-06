@@ -10,13 +10,17 @@ on:
         description: "Hash of Homebrew Bundler RubyGems"
         value: ${{ jobs.setup.outputs.gems-hash }}
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   setup:
     runs-on: macos-latest
     outputs:
       gems-path: ${{ steps.set-up-homebrew.outputs.gems-path }}
       gems-hash: ${{ steps.set-up-homebrew.outputs.gems-hash }}
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -30,19 +34,21 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ steps.set-up-homebrew.outputs.gems-path }}
-          key: ${{ runner.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+          key:
+            ${{ runner.os }}-rubygems-${{
+            steps.set-up-homebrew.outputs.gems-hash }}
           restore-keys: ${{ runner.os }}-rubygems-
 
       - name: Install Homebrew Bundler RubyGems
         if: steps.cache.outputs.cache-hit != 'true'
         run: brew install-bundler-gems
- 
+
       - name: Set up environment
         run: |
           # Install all dependencies from Brewfile
           echo "Installing dependencies from Brewfile in $(pwd)..."
           brew bundle
-          
+
           # Verify zunit is installed
           which zunit || echo "zunit not found in PATH"
           brew list | grep zunit || echo "zunit not found in brew list"

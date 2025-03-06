@@ -366,10 +366,11 @@ find_files() {
 #######################################
 # Generate table of contents
 # Globals:
-#   FILES_TO_BUNDLE - Files to list in TOC
-#   LINE_NUMBER_MODE - Determines if line numbers are shown
-# Arguments:
 #   None
+# Arguments:
+#   files_to_bundle - Array of files to list in TOC
+#   separator_length - Length of separator lines
+#   line_number_mode - Determines if line numbers are shown
 # Outputs:
 #   Table of contents to stdout
 #######################################
@@ -377,20 +378,23 @@ generate_toc() {
   local count=0
   local filename
 
+  local separator_length="$1"; shift
+  local -a files_to_bundle=("$@")
+
   log "Starting generate_toc"
 
   # Print TOC header
-  create_title_header "TABLE OF CONTENTS" "$SEPARATOR_LENGTH"
+  create_title_header "TABLE OF CONTENTS" "$separator_length"
   echo ""
 
-  # Check if FILES_TO_BUNDLE is empty
-  if [[ ${#FILES_TO_BUNDLE[@]} -eq 0 ]]; then
+  # Check if files_to_bundle is empty
+  if [[ ${#files_to_bundle[@]} -eq 0 ]]; then
     echo "Error: No files to include in table of contents" >&2
     return 1
   fi
 
   # Generate TOC entries
-  for file in "${FILES_TO_BUNDLE[@]}"; do
+  for file in "${files_to_bundle[@]}"; do
     count=$((count + 1))
     filename=$(basename "$file")
     printf "%02d. %s\n" "$count" "$filename"
@@ -405,7 +409,7 @@ generate_toc() {
 #######################################
 # Process all files and output bundled content
 # Globals:
-#   FILES_TO_BUNDLE - Array of files to process
+#   INCLUDE_TOC - Whether to include table of contents
 #   LINE_NUMBER_MODE - Line numbering preference
 #   SEPARATOR_LENGTH - Length of separator lines
 #   INCLUDE_TOC - Whether to include table of contents
@@ -415,29 +419,31 @@ generate_toc() {
 process_all() {
   local global_line_num=1
   local file_line_num=1
+  local -a files_to_bundle=("$@")
 
   # Generate TOC if requested
   if $INCLUDE_TOC; then
     log "Generating table of contents"
-    generate_toc
+    generate_toc "$SEPARATOR_LENGTH" "${files_to_bundle[@]}"
   fi
 
   # Process files and stream directly to stdout
   log "Processing files and streaming to stdout"
-  for file in "${FILES_TO_BUNDLE[@]}"; do
+  for file in "${files_to_bundle[@]}"; do
     # Process the file and update global line number
-    process_file "$file" "$global_line_num" "$LINE_NUMBER_MODE"
+    # Process the file and update global line number
+    process_file "$file" "$global_line_num" "$LINE_NUMBER_MODE" "$SEPARATOR_LENGTH"
     global_line_num=$((global_line_num + $(wc -l < "$file")))
   done
 
   log "Bundle process complete"
-  log "Successfully bundled ${#FILES_TO_BUNDLE[@]} files to stdout"
+  log "Successfully bundled ${#files_to_bundle[@]} files to stdout"
 }
 
 #######################################
 # Process a single file and output its content
 # Globals:
-#   LINE_NUMBER_MODE - Line numbering preference
+#   None
 #   SEPARATOR_LENGTH - Length of separator lines
 # Arguments:
 #   file - The file to process
@@ -452,6 +458,7 @@ process_file() {
   local file="$1"
   local global_line_num="$2"
   local line_number_mode="$3"
+  local separator_length="$4"
   local file_line_num=1
 
   # Check if file is still accessible
@@ -466,7 +473,7 @@ process_file() {
 
   # Create title header
   log "Creating separator for: '$filename'"
-  separator=$(create_title_header "$filename" "$SEPARATOR_LENGTH")
+  separator=$(create_title_header "$filename" "$separator_length")
   log "Final separator: '$separator'"
 
   # Print the separator (without line numbering)
@@ -514,7 +521,7 @@ main() {
   fi
 
   # Process the files
-  process_all
+  process_all "${FILES_TO_BUNDLE[@]}"
 
   return 0
 }

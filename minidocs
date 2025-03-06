@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 #
 # Minidocs bundler - an ultra lightweight documentation generator.
-# 
+#
 # This script combines multiple text files into a single document with
 # formatted headers and optional line numbering. It can process files
 # provided as arguments or automatically find .txt and .md files in the
@@ -64,7 +64,7 @@ create_title_header() {
   local filename
   filename="$1"
   local separator_length="$2"
-  
+
   log "Calculating padding for filename: '$filename' with length ${#filename}" >&2
   # Calculate padding for centered filename
   local padding=$(((separator_length - ${#filename} - 2) / 2))
@@ -97,7 +97,7 @@ print_line() {
   local file_num="$2"
   local global_num="$3"
   local line_num_choice="$4"  # 0: no numbering, 1: file numbering, 2: global numbering
-  
+
   case "$line_num_choice" in
     0)  # No line numbering
       printf "%s\n" "$line"
@@ -106,7 +106,7 @@ print_line() {
       printf "%02d | %s\n" "$file_num" "$line"
       ;;
     2)  # Global line numbering
-      printf "%03d | %s\n" "$global_num" "$line" 
+      printf "%03d | %s\n" "$global_num" "$line"
       ;;
   esac
 }
@@ -125,7 +125,7 @@ show_help() {
 Minidocs v${VERSION} - Lightweight documentation generator
 
 Usage: minidocs [options] [file1.txt file2.txt ...]
-  
+
 Options:
   -v, --verbose  Enable verbose output
   -n             Enable per-file line numbering (01, 02, etc.)
@@ -152,18 +152,18 @@ EOF
 read_file_list() {
   local file_list="$1"
   local found_files=0
-  
+
   log "Reading list of files from: $file_list"
-  
+
   # Read each line from the file
   while IFS= read -r line || [[ -n "$line" ]]; do
     # Skip empty lines and comments
     [[ -z "$line" || "$line" == \#* ]] && continue
-    
+
     # Trim whitespace
     line="${line#"${line%%[![:space:]]*}"}"
     line="${line%"${line##*[![:space:]]}"}"
-    
+
     # Check if file exists and is readable
     if [[ -f "$line" && -r "$line" ]]; then
       log "Adding file from list: $line"
@@ -173,12 +173,12 @@ read_file_list() {
       echo "Warning: Cannot read file from list: $line" >&2
     fi
   done < "$file_list"
-  
+
   if [[ $found_files -eq 0 ]]; then
     echo "Warning: No valid files found in list file: $file_list" >&2
     return 1
   fi
-  
+
   log "Found $found_files files in list"
   return 0
 }
@@ -250,21 +250,21 @@ parse_args() {
 #######################################
 get_files() {
   local -a file_args=("$@")
-  
+
   # Reset the global array
   FILES_TO_BUNDLE=()
-  
+
   # Case 1: No file arguments provided
   if [[ ${#file_args[@]} -eq 0 ]]; then
     log "No file arguments provided, searching current directory"
     find_files || return 1
     return 0
   fi
-  
+
   # Case 2: Single file or directory argument
   if [[ ${#file_args[@]} -eq 1 ]]; then
     local arg="${file_args[0]}"
-    
+
     if [[ -d "$arg" ]]; then
       # Single directory argument - find files in that directory
       SCRIPT_DIR="$(realpath "$arg")/"
@@ -274,7 +274,7 @@ get_files() {
     elif [[ -f "$arg" ]]; then
       # Single file argument - could be a list file or a file to bundle
       log "Single file argument: $arg"
-      
+
       # Check if it might be a list file (only if it looks like a text file)
       if file "$arg" | grep -q "text"; then
         # Try to read as a list file first
@@ -290,18 +290,18 @@ get_files() {
         # Not a text file, just add it directly
         FILES_TO_BUNDLE=("$arg")
       fi
-      
+
       return 0
     else
       echo "Warning: File or directory not found: $arg" >&2
       return 1
     fi
   fi
-  
+
   # Case 3: Multiple file arguments - add each valid file
   log "Processing multiple file arguments"
   local found_files=0
-  
+
   for file in "${file_args[@]}"; do
     if [[ -f "$file" ]]; then
       log "Adding file: $file"
@@ -311,12 +311,12 @@ get_files() {
       echo "Warning: File not found: $file" >&2
     fi
   done
-  
+
   if [[ $found_files -eq 0 ]]; then
     echo "Error: None of the specified files were found" >&2
     return 1
   fi
-  
+
   return 0
 }
 
@@ -329,10 +329,10 @@ get_files() {
 find_files() {
   log "No files specified, finding all files in current directory"
   log "Running find command on $SCRIPT_DIR"
-  
+
   # Use process substitution instead of pipe to avoid subshell issues
   local -a found_files=()
-  
+
   # Process the find results
   while IFS= read -r -d $'\0' file; do
     log "File found: $file"
@@ -342,19 +342,19 @@ find_files() {
     fi
 
     # Skip bundle files
-    if [[ "$file" == *.bundle ]]; then 
+    if [[ "$file" == *.bundle ]]; then
       continue
     fi
-   
+
     found_files+=("$file")
   done < <(find "$SCRIPT_DIR" -type f \( -name "*.txt" -o -name "*.md" \) -print0)
-  
+
   # Check if we found any files and add them to the global array
   if [[ ${#found_files[@]} -eq 0 ]]; then
     echo "Warning: No .txt or .md files found in $SCRIPT_DIR" >&2
     return 1
   fi
-  
+
   FILES_TO_BUNDLE=("${found_files[@]}")
   log "Found ${#FILES_TO_BUNDLE[@]} files to bundle"
   return 0
@@ -375,27 +375,27 @@ generate_toc() {
   local filename
 
   log "Starting generate_toc"
-  
+
   # Print TOC header
   create_title_header "TABLE OF CONTENTS" "$SEPARATOR_LENGTH"
   echo ""
-  
+
   # Check if FILES_TO_BUNDLE is empty
   if [[ ${#FILES_TO_BUNDLE[@]} -eq 0 ]]; then
     echo "Error: No files to include in table of contents" >&2
     return 1
   fi
-  
+
   # Generate TOC entries
   for file in "${FILES_TO_BUNDLE[@]}"; do
     count=$((count + 1))
     filename=$(basename "$file")
     printf "%02d. %s\n" "$count" "$filename"
   done
-  
+
   echo ""
   echo ""
-  
+
   log "TOC generation complete"
 }
 
@@ -412,13 +412,13 @@ generate_toc() {
 process_files() {
   local global_line_num=1
   local file_line_num=1
-  
+
   # Generate TOC if requested
   if $INCLUDE_TOC; then
     log "Generating table of contents"
     generate_toc
   fi
-  
+
   # Process files and stream directly to stdout
   log "Processing files and streaming to stdout"
   for file in "${FILES_TO_BUNDLE[@]}"; do
@@ -437,7 +437,7 @@ process_files() {
     log "Creating separator for: '$filename'"
     separator=$(create_title_header "$filename" "$SEPARATOR_LENGTH")
     log "Final separator: '$separator'"
-    
+
     # Print the separator (without line numbering)
     echo "$separator"
 
@@ -466,13 +466,13 @@ process_files() {
 #######################################
 main() {
   local -a return_args=()
-  
+
   # Parse command line arguments
   parse_args "$@"
-  
+
   log "Initialization complete"
   log "Script directory: $SCRIPT_DIR"
-  
+
   # Get files to bundle based on arguments
   if ! get_files "${return_args[@]}"; then
     echo "Error: Could not find any files to bundle" >&2
@@ -484,10 +484,10 @@ main() {
     echo "Error: No files to bundle" >&2
     exit 1
   fi
-  
+
   # Process the files
   process_files
-  
+
   return 0
 }
 

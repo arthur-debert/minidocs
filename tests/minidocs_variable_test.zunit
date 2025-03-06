@@ -1,0 +1,21 @@
+#!/usr/bin/env zunit
+# shellcheck shell=bash
+# shellcheck disable=SC2154  # state is set by the zunit framework
+
+@test 'Test using minidocs variable' {
+  # Verify the minidocs variable is set
+  assert "${minidocs}" same_as "${minidocs}"
+
+  # Verify the minidocs script exists using the new variable
+  run test -e "${minidocs}"
+  assert "${state}" equals 0
+
+  # Verify the minidocs script is executable using the new variable
+  run test -x "${minidocs}"
+  assert "${state}" equals 0
+
+  # Example of how to run the minidocs script using the new variable
+  # Uncomment and modify as needed for actual testing
+  # run "${minidocs}" --help
+  # assert "${state}" equals 0
+}

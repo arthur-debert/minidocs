@@ -6,13 +6,14 @@
 export ZUNIT_DIR
 ZUNIT_DIR="$(cd "$(dirname "${0}")/.." && pwd)"
 
-# Set the path to the minidocs script
-export MINIDOCS_PATH
-MINIDOCS_PATH="$(cd "$(dirname "${0}")/../.." && pwd)/minidocs"
+
+# Set the minidocs variable for direct use in tests
+export minidocs
+minidocs="$(cd "$(dirname "${0}")/../.." && pwd)/minidocs"
 
 # Ensure the script is executable
-chmod +x "${MINIDOCS_PATH}"
+chmod +x "${minidocs}"
 
 # Print the path to verify
-echo "MINIDOCS_PATH: ${MINIDOCS_PATH}"
+echo "minidocs: ${minidocs}"
 echo "ZUNIT_DIR: ${ZUNIT_DIR}"

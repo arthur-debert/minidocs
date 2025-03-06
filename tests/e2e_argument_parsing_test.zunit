@@ -3,7 +3,7 @@
 # shellcheck disable=SC2154  # state is set by the zunit framework
 
 @test 'Test help option shows usage information' {
-  run "${MINIDOCS_PATH}" --help
+  run "${minidocs}" --help
 
   # Check exit status
   assert "${state}" equals 0
@@ -18,7 +18,7 @@
 }
 
 @test 'Test unknown option returns error' {
-  run "${MINIDOCS_PATH}" --unknown-option
+  run "${minidocs}" --unknown-option
 
   # Check exit status is non-zero
   assert "${state}" not_equal_to 0
@@ -33,7 +33,7 @@
   local test_file2="${ZUNIT_DIR}/_support/fixtures/fixture2.txt"
 
   # Run with verbose option and capture output
-  run "${MINIDOCS_PATH}" -v --toc "${test_file1}" "${test_file2}"
+  run "${minidocs}" -v --toc "${test_file1}" "${test_file2}"
 
   # Verify verbose output
   assert "${output}" contains "INFO:"
@@ -44,11 +44,11 @@
   # here we'll just verify that the options are recognized
 
   # Test that -n option is recognized (doesn't error)
-  run "${MINIDOCS_PATH}" -n --help
+  run "${minidocs}" -n --help
   assert "${state}" equals 0
 
   # Test that -nn option is recognized (doesn't error)
-  run "${MINIDOCS_PATH}" -nn --help
+  run "${minidocs}" -nn --help
   assert "${state}" equals 0
 }
 
@@ -69,7 +69,7 @@
   assert "${output}" is_not_empty
 
   # Run with TOC option
-  run "${MINIDOCS_PATH}" --toc "${test_file1}" "${test_file2}"
+  run "${minidocs}" --toc "${test_file1}" "${test_file2}"
 
   # Check exit status
   assert "${state}" equals 0

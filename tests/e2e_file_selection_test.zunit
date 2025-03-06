@@ -14,7 +14,7 @@
   assert "${state}" equals 0
 
   # Run minidocs with explicit file arguments
-  run "${MINIDOCS_PATH}" "${test_file1}" "${test_file2}"
+  run "${minidocs}" "${test_file1}" "${test_file2}"
 
   # Check exit status
   assert "${state}" equals 0
@@ -34,7 +34,7 @@
   # since we already test file selection with explicit files
 
   # Test that directory argument is recognized (doesn't error)
-  run "${MINIDOCS_PATH}" --help
+  run "${minidocs}" --help
   assert "${state}" equals 0
 }
 
@@ -43,7 +43,7 @@
   # which might change, we'll test with the help option instead
 
   # Test that no arguments is handled (shows help)
-  run "${MINIDOCS_PATH}" --help
+  run "${minidocs}" --help
   assert "${state}" equals 0
   assert "${output}" contains "Usage: minidocs [options]"
 }

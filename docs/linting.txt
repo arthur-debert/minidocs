@@ -1,0 +1,5 @@
+Remember to abide these shellcheck rules:
+* always double quote vars (SCC2086)
+* decalare and assign separately (SC2155)
+* for zsh files, add a # shellcheck shell=bash on top so we can leverage shellcheck
+* always enclose vars in brackets like ${THIS} not $THIS

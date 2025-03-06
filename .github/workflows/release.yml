@@ -1,0 +1,102 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: "Create a draft release"
+        type: boolean
+        default: false
+      prerelease:
+        description: "Mark as prerelease"
+        type: boolean
+        default: false
+
+jobs:
+  setup:
+    uses: ./.github/workflows/base-setup.yml
+
+  release:
+    needs: setup
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up environment
+        run: |
+          mkdir -p dist
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(grep -E '^MINIDOCS_VERSION=' .env | cut -d'=' -f2)
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "TAG_EXISTS=true" >> $GITHUB_OUTPUT
+            echo "Tag v$VERSION already exists"
+          else
+            echo "TAG_EXISTS=false" >> $GITHUB_OUTPUT
+            echo "Tag v$VERSION does not exist"
+          fi
+
+      - name: Create tag
+        if: steps.check_tag.outputs.TAG_EXISTS == 'false'
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
+
+      - name: Prepare release files
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          # Copy only the minidocs script and README.md to the dist directory
+          cp minidocs dist/
+          cp README.md dist/
+          # Make sure the script is executable
+          chmod +x dist/minidocs
+          # Create a zip archive with just these files
+          cd dist
+          zip "minidocs-$VERSION.zip" minidocs README.md
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          # Extract changes since the last release
+          PREV_TAG=$(git describe --tags --abbrev=0 "v$VERSION^" \
+            2>/dev/null || echo "")
+
+          if [ -n "$PREV_TAG" ]; then
+            echo "Changes since $PREV_TAG:" > dist/changelog.md
+            git log --pretty=format:"* %s (%h)" "$PREV_TAG..HEAD" >> \
+              dist/changelog.md
+          else
+            echo "Initial release v$VERSION" > dist/changelog.md
+            git log --pretty=format:"* %s (%h)" >> dist/changelog.md
+          fi
+
+          cat dist/changelog.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          name: Release v${{ steps.version.outputs.VERSION }}
+          body_path: dist/changelog.md
+          draft: ${{ github.event.inputs.draft }}
+          prerelease: ${{ github.event.inputs.prerelease }}
+          files: |
+            dist/minidocs-${{ steps.version.outputs.VERSION }}.zip
+            dist/minidocs
+            dist/README.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

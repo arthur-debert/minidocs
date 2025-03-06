@@ -14,6 +14,10 @@ minidocs="$(cd "$(dirname "${0}")/../.." && pwd)/minidocs"
 # Ensure the script is executable
 chmod +x "${minidocs}"
 
+# Source the minidocs script to make all functions available to tests
+# This is especially useful for unit tests that need to call functions directly
+. "${minidocs}"
+
 # Print the path to verify
 echo "minidocs: ${minidocs}"
 echo "ZUNIT_DIR: ${ZUNIT_DIR}"

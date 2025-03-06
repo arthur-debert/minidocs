@@ -3,10 +3,6 @@
 # shellcheck disable=SC2154  # state is set by the zunit framework
 
 @test 'Verify we can load and call functions from minidocs' {
-  # Source the minidocs script to access its functions directly
-  # We need to use the . (dot) command to source the script in the current shell
-  . "${minidocs}"
-
   # Test that we can call the create_title_header function
   # This function creates a formatted header with a centered filename
   local result

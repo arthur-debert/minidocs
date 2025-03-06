@@ -18,9 +18,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install dependencies
-        run: brew bundle
-
       - name: Run ZUnit tests
         run: |
           # Run ZUnit tests from the repository directory

@@ -403,7 +403,7 @@ generate_toc() {
 }
 
 #######################################
-# Process files and output bundled content
+# Process all files and output bundled content
 # Globals:
 #   FILES_TO_BUNDLE - Array of files to process
 #   LINE_NUMBER_MODE - Line numbering preference
@@ -412,7 +412,7 @@ generate_toc() {
 # Outputs:
 #   Bundled content to stdout
 #######################################
-process_files() {
+process_all() {
   local global_line_num=1
   local file_line_num=1
 
@@ -425,39 +425,64 @@ process_files() {
   # Process files and stream directly to stdout
   log "Processing files and streaming to stdout"
   for file in "${FILES_TO_BUNDLE[@]}"; do
-    # Check if file is still accessible
-    if [[ ! -r "$file" ]]; then
-      echo "Warning: Cannot read file $file - skipping" >&2
-      continue
-    fi
-
-    filename=$(basename "$file")
-    log "Processing file: $filename"
-    log "File path: $file"
-    file_line_num=1  # Reset file line counter for each new file
-
-    # Create title header
-    log "Creating separator for: '$filename'"
-    separator=$(create_title_header "$filename" "$SEPARATOR_LENGTH")
-    log "Final separator: '$separator'"
-
-    # Print the separator (without line numbering)
-    echo "$separator"
-
-    # Process and print each line of the file with appropriate line numbering
-    log "Processing file content with line numbering mode: $LINE_NUMBER_MODE"
-    while IFS= read -r line || [[ -n "$line" ]]; do  # Handle files without final newline
-      print_line "$line" "$file_line_num" "$global_line_num" "$LINE_NUMBER_MODE"
-      ((file_line_num++))
-      ((global_line_num++))
-    done < "$file"
-
-    # Add blank line after each file
-    echo ""
+    # Process the file and update global line number
+    process_file "$file" "$global_line_num" "$LINE_NUMBER_MODE"
+    global_line_num=$((global_line_num + $(wc -l < "$file")))
   done
 
   log "Bundle process complete"
   log "Successfully bundled ${#FILES_TO_BUNDLE[@]} files to stdout"
+}
+
+#######################################
+# Process a single file and output its content
+# Globals:
+#   LINE_NUMBER_MODE - Line numbering preference
+#   SEPARATOR_LENGTH - Length of separator lines
+# Arguments:
+#   file - The file to process
+#   global_line_num - Current global line number
+#   line_number_mode - Line numbering mode
+# Returns:
+#   Updated global line number
+# Outputs:
+#   Processed file content to stdout
+#######################################
+process_file() {
+  local file="$1"
+  local global_line_num="$2"
+  local line_number_mode="$3"
+  local file_line_num=1
+
+  # Check if file is still accessible
+  if [[ ! -r "$file" ]]; then
+    echo "Warning: Cannot read file $file - skipping" >&2
+    echo "$global_line_num"
+    return
+  fi
+  filename=$(basename "$file")
+  log "Processing file: $filename"
+  log "File path: $file"
+
+  # Create title header
+  log "Creating separator for: '$filename'"
+  separator=$(create_title_header "$filename" "$SEPARATOR_LENGTH")
+  log "Final separator: '$separator'"
+
+  # Print the separator (without line numbering)
+  echo "$separator"
+
+  # Process and print each line of the file with appropriate line numbering
+  log "Processing file content with line numbering mode: $line_number_mode"
+  while IFS= read -r line || [[ -n "$line" ]]; do  # Handle files without final newline
+    print_line "$line" "$file_line_num" "$global_line_num" "$line_number_mode"
+    ((file_line_num++))
+    ((global_line_num++))
+  done < "$file"
+
+  # Add blank line after each file
+  echo ""
+
 }
 
 #######################################
@@ -489,7 +514,7 @@ main() {
   fi
 
   # Process the files
-  process_files
+  process_all
 
   return 0
 }

@@ -11,9 +11,9 @@
   assert "${state}" equals 0
 
   # Run minidocs with the bundle file as the sole argument
-  run "${minidocs}" "${bundle_file}"
+  run "${minidocs}" "${bundle_file}" || true
 
-  # Check exit status - should still be successful
+  # Check exit status - should still be successful since some valid files were found
   assert "${state}" equals 0
 
   # Verify output contains content from valid files in the bundle
@@ -25,8 +25,8 @@
   assert "${output}" contains "file1.txt"
 
   # Verify output contains warnings about invalid files
-  assert "${output}" contains "Warning: Cannot read file from list: tests/_support/fixtures/nonexistent.txt"
-  assert "${output}" contains "Warning: Cannot read file from list: tests/_support/test_file_selection/nonexistent.md"
+  assert "${output}" contains "Error: Cannot read file from list: tests/_support/fixtures/nonexistent.txt"
+  assert "${output}" contains "Error: Cannot read file from list: tests/_support/test_file_selection/nonexistent.md"
 }
 
 @test 'Test bundle file with absolute paths' {

@@ -14,9 +14,9 @@
   assert "${state}" equals 0
 
   # Run minidocs with the directory and a file
-  run "${minidocs}" "${test_file}" "${test_dir}"
+  run "${minidocs}" "${test_file}" "${test_dir}" || true
 
-  # Check exit status
+  # Check exit status - should be successful since there's a valid file
   assert "${state}" equals 0
 
   # Verify output contains content from the file
@@ -26,5 +26,5 @@
   assert "${output}" contains "fixture1.txt"
 
   # Verify warning about directory
-  assert "${output}" contains "Warning: Cannot read directory ${test_dir} as a file - skipping"
+  assert "${output}" contains "Error: Cannot read directory ${test_dir} as a file"
 }

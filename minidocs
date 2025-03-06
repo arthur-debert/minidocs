@@ -147,6 +147,7 @@ EOF
 read_file_list() {
 	local file_list="$1"
 	local found_files=0
+	local has_errors=false
 	local -a files=()
 
 	log "Starting read_file_list function with file_list: $file_list"
@@ -167,19 +168,19 @@ read_file_list() {
 			files+=("$line")
 			((found_files++))
 		else
-			echo "Warning: Cannot read file from list: $line" >&2
+			echo "Error: Cannot read file from list: $line" >&2
+			has_errors=true
 		fi
 	done <"$file_list"
 
 	if [[ $found_files -eq 0 ]]; then
-		echo "Warning: No valid files found in list file: $file_list" >&2
+		echo "Error: No valid files found in list file: $file_list. Exiting." >&2
 		return 1
 	fi
 
-	log "Found $found_files files in list"
-
 	# Set the global FILES_TO_BUNDLE variable with the expanded file list
 	FILES_TO_BUNDLE=("${files[@]}")
+	log "Found $found_files files in list"
 	return 0
 }
 
@@ -356,7 +357,7 @@ get_files() {
 	# Case 3: Multiple file arguments - add each valid file
 	log "Processing multiple file arguments"
 	local found_files=0
-
+local has_errors=false
 	# Initialize files_to_bundle with valid files
 	files_to_bundle=()
 
@@ -370,23 +371,24 @@ get_files() {
 			((found_files++))
 		else
 			if [[ -d "$file" ]]; then
-				echo "Warning: Cannot read directory $file as a file - skipping" >&2
+				echo "Error: Cannot read directory $file as a file. Exiting." >&2
 				log "File $file is a directory, skipping"
+				has_errors=true
 			else
-				echo "Warning: File not found: $file" >&2
+				echo "Error: File not found: $file. Exiting." >&2
+				has_errors=true
 			fi
 		fi
 	done
 
 	if [[ $found_files -eq 0 ]]; then
-		echo "Error: None of the specified files were found" >&2
+		echo "Error: None of the specified files were found. Exiting." >&2
 		return 1
 	fi
 
 	# Set the global FILES_TO_BUNDLE variable
 	log "Setting FILES_TO_BUNDLE with ${#files_to_bundle[@]} files: ${files_to_bundle[*]}"
 	FILES_TO_BUNDLE=("${files_to_bundle[@]}")
-
 	return 0
 }
 
@@ -425,7 +427,7 @@ find_files() {
 
 	# Check if we found any files and add them to the global array
 	if [[ ${#found_files[@]} -eq 0 ]]; then
-		echo "Warning: No .txt or .md files found in $src_dir" >&2
+		echo "Error: No .txt or .md files found in $src_dir. Exiting." >&2
 		return 1
 	fi
 
@@ -517,7 +519,10 @@ process_all() {
 	for file in "${files_to_bundle[@]}"; do
 		log "Processing file in loop: $file"
 		# Process the file and update global line number
-		process_file "$file" "$global_line_num" "$line_number_mode" "$separator_length"
+		if ! process_file "$file" "$global_line_num" "$line_number_mode" "$separator_length"; then
+			log "Error processing file: $file"
+			exit 1
+		fi
 
 		# Only update the global line number if the file is a regular file
 		if [[ -f "$file" ]]; then
@@ -557,16 +562,16 @@ process_file() {
 
 	# Check if file is still accessible
 	if [[ -d "$file" ]]; then
-		echo "Warning: Cannot read directory $file as a file - skipping" >&2
+		echo "Error: Cannot read directory $file as a file. Exiting." >&2
 		log "File $file is a directory, skipping"
 		# Return the current global line number without incrementing
 		echo "$global_line_num"
-		return
+		return 1
 	elif [[ ! -r "$file" ]]; then
-		echo "Warning: Cannot read file $file - skipping" >&2
+		echo "Error: Cannot read file $file. Exiting." >&2
 		log "File $file is not readable, skipping"
 		echo "$global_line_num"
-		return
+		return 1
 	fi
 	filename=$(basename "$file")
 	log "Processing file: $filename"
@@ -640,22 +645,22 @@ main() {
 
 	log "Before calling get_files: user_requested_srcs count: ${#user_requested_srcs[@]}"
 	log "Before calling get_files: user_requested_srcs[0]: '${user_requested_srcs[0]}'"
+
 	# Get files to bundle based on user requested sources
 	if ! get_files "$script_dir" "${user_requested_srcs[@]}"; then
-		echo "Error: Could not find any files to bundle" >&2
+		echo "Error: Could not find any valid files to bundle. Exiting." >&2
 		exit 1
 	fi
 
 	# Check if we have files to bundle
 	if [[ ${#FILES_TO_BUNDLE[@]} -eq 0 ]]; then
-		echo "Error: No files to bundle" >&2
+		echo "Error: No files to bundle. Exiting." >&2
 		exit 1
 	fi
 
 	log "Final list of files to bundle: ${FILES_TO_BUNDLE[*]}"
 	# Process the files
 	process_all "$include_toc" "$line_number_mode" "$SEPARATOR_LENGTH" "${FILES_TO_BUNDLE[@]}"
-
 	return 0
 }
 

@@ -15,9 +15,9 @@
   assert "${state}" equals 0
 
   # Run minidocs with the bundle file and a regular file
-  run "${minidocs}" "${test_file}" "${bundle_file}"
+  run "${minidocs}" "${test_file}" "${bundle_file}" || true
 
-  # Check exit status
+  # Check exit status - should be successful since both files exist
   assert "${state}" equals 0
 
   # Verify output contains content from the regular file

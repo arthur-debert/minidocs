@@ -1,0 +1,17 @@
+out
+dist
+node_modules
+.vscode-test/
+*.vsix
+scratch/*
+test-results/
+docs/site
+.DStore
+.venv
+*.svg
+drafts
+.DS_Store
+results
+report
+
+*/tests/_output/*

@@ -33,17 +33,14 @@ LINE_NUMBER_MODE=0 # 0: no line numbers, 1: file line numbers, 2: global line nu
 INCLUDE_TOC=false
 declare -a FILES_TO_BUNDLE
 
-# Only set up traps when the script is executed directly, not when sourced
-if [[ "${ZSH_EVAL_CONTEXT:-}" != *:file:* ]]; then
-  # Setup error handling with traps
-  trap 'echo "Error: Script terminated unexpectedly" >&2; exit 1' ERR
-  trap 'echo "Received interrupt signal. Exiting..." >&2; exit 2' INT TERM
-fi
+# Determine if script is being executed directly or sourced
+IS_EXECUTED_DIRECTLY=false
+[[ "${ZSH_EVAL_CONTEXT:-}" != *:file:* ]] && IS_EXECUTED_DIRECTLY=true
 
 #######################################
 # Log function to handle verbose output
 # Globals:
-#   VERBOSE
+#   VERBOSE -> keep this global, always
 # Arguments:
 #   Message to log
 #######################################
@@ -119,13 +116,14 @@ print_line() {
 # Globals:
 #   None
 # Arguments:
-#   None
+#   version - The version of the script
 # Outputs:
 #   Help text to stdout
 #######################################
 show_help() {
+  local version="$1"
   cat << EOF
-Minidocs v${VERSION} - Lightweight documentation generator
+Minidocs v${version} - Lightweight documentation generator
 
 Usage: minidocs [options] [file1.txt file2.txt ...]
 
@@ -146,7 +144,7 @@ EOF
 #######################################
 # Read list of files from a file
 # Globals:
-#   FILES_TO_BUNDLE - Array to populate with found files
+#   None
 # Arguments:
 #   file_list - Path to file containing list of files
 # Returns:
@@ -155,6 +153,7 @@ EOF
 read_file_list() {
   local file_list="$1"
   local found_files=0
+  local -a files=()
 
   log "Reading list of files from: $file_list"
 
@@ -170,7 +169,7 @@ read_file_list() {
     # Check if file exists and is readable
     if [[ -f "$line" && -r "$line" ]]; then
       log "Adding file from list: $line"
-      FILES_TO_BUNDLE+=("$line")
+      files+=("$line")
       ((found_files++))
     else
       echo "Warning: Cannot read file from list: $line" >&2
@@ -183,6 +182,9 @@ read_file_list() {
   fi
 
   log "Found $found_files files in list"
+
+  # Set the global FILES_TO_BUNDLE variable
+  FILES_TO_BUNDLE=("${files[@]}")
   return 0
 }
 
@@ -221,7 +223,7 @@ parse_args() {
         shift
         ;;
       -h|--help)
-        show_help
+        show_help "$VERSION"
         exit 0
         ;;
       -*)
@@ -245,22 +247,24 @@ parse_args() {
 #######################################
 # Find files to bundle based on various input methods
 # Globals:
-#   FILES_TO_BUNDLE - Array to be populated with found files
+#   None
 # Arguments:
+#   src_dir - Directory to search in
 #   file_args - Array of file arguments passed to the script
 # Returns:
 #   0 if files were found, 1 otherwise
 #######################################
 get_files() {
+  local src_dir="$1"; shift
   local -a file_args=("$@")
+  local -a files_to_bundle=()
 
   # Reset the global array
-  FILES_TO_BUNDLE=()
 
   # Case 1: No file arguments provided
   if [[ ${#file_args[@]} -eq 0 ]]; then
     log "No file arguments provided, searching current directory"
-    find_files || return 1
+    find_files "$src_dir" || return 1
     return 0
   fi
 
@@ -270,9 +274,9 @@ get_files() {
 
     if [[ -d "$arg" ]]; then
       # Single directory argument - find files in that directory
-      SCRIPT_DIR="$(realpath "$arg")/"
-      log "Using directory: $SCRIPT_DIR"
-      find_files || return 1
+      local dir_path="$(realpath "$arg")/"
+      log "Using directory: $dir_path"
+      find_files "$dir_path" || return 1
       return 0
     elif [[ -f "$arg" ]]; then
       # Single file argument - could be a list file or a file to bundle
@@ -287,11 +291,11 @@ get_files() {
         else
           # If not a valid list file, add the file itself to bundle
           log "Not a valid list file, adding as a single file"
-          FILES_TO_BUNDLE=("$arg")
+          files_to_bundle=("$arg")
         fi
       else
         # Not a text file, just add it directly
-        FILES_TO_BUNDLE=("$arg")
+        files_to_bundle=("$arg")
       fi
 
       return 0
@@ -308,7 +312,7 @@ get_files() {
   for file in "${file_args[@]}"; do
     if [[ -f "$file" ]]; then
       log "Adding file: $file"
-      FILES_TO_BUNDLE+=("$file")
+      files_to_bundle+=("$file")
       ((found_files++))
     else
       echo "Warning: File not found: $file" >&2
@@ -320,18 +324,23 @@ get_files() {
     return 1
   fi
 
+  # Set the global FILES_TO_BUNDLE variable
+  FILES_TO_BUNDLE=("${files_to_bundle[@]}")
+
   return 0
 }
 
 #######################################
 # Find files to bundle if none were specified
 # Globals:
-#   SCRIPT_DIR - Directory to search in
-#   FILES_TO_BUNDLE - Array to populate with found files
+#   None
+# Arguments:
+#   script_dir - Directory to search in
 #######################################
 find_files() {
+  local src_dir="$1"
   log "No files specified, finding all files in current directory"
-  log "Running find command on $SCRIPT_DIR"
+  log "Running find command on $src_dir"
 
   # Use process substitution instead of pipe to avoid subshell issues
   local -a found_files=()
@@ -350,11 +359,11 @@ find_files() {
     fi
 
     found_files+=("$file")
-  done < <(find "$SCRIPT_DIR" -type f \( -name "*.txt" -o -name "*.md" \) -print0)
+  done < <(find "$src_dir" -type f \( -name "*.txt" -o -name "*.md" \) -print0)
 
   # Check if we found any files and add them to the global array
   if [[ ${#found_files[@]} -eq 0 ]]; then
-    echo "Warning: No .txt or .md files found in $SCRIPT_DIR" >&2
+    echo "Warning: No .txt or .md files found in $src_dir" >&2
     return 1
   fi
 
@@ -409,30 +418,34 @@ generate_toc() {
 #######################################
 # Process all files and output bundled content
 # Globals:
-#   INCLUDE_TOC - Whether to include table of contents
-#   LINE_NUMBER_MODE - Line numbering preference
-#   SEPARATOR_LENGTH - Length of separator lines
-#   INCLUDE_TOC - Whether to include table of contents
+#   None
+# Arguments:
+#   include_toc - Whether to include table of contents
+#   line_number_mode - Line numbering preference
+#   separator_length - Length of separator lines
+#   files_to_bundle - Array of files to process
 # Outputs:
 #   Bundled content to stdout
 #######################################
 process_all() {
   local global_line_num=1
   local file_line_num=1
+  local include_toc="$1"; shift
+  local line_number_mode="$1"; shift
+  local separator_length="$1"; shift
   local -a files_to_bundle=("$@")
 
   # Generate TOC if requested
-  if $INCLUDE_TOC; then
+  if $include_toc; then
     log "Generating table of contents"
-    generate_toc "$SEPARATOR_LENGTH" "${files_to_bundle[@]}"
+    generate_toc "$separator_length" "${files_to_bundle[@]}"
   fi
 
   # Process files and stream directly to stdout
   log "Processing files and streaming to stdout"
   for file in "${files_to_bundle[@]}"; do
     # Process the file and update global line number
-    # Process the file and update global line number
-    process_file "$file" "$global_line_num" "$LINE_NUMBER_MODE" "$SEPARATOR_LENGTH"
+    process_file "$file" "$global_line_num" "$line_number_mode" "$separator_length"
     global_line_num=$((global_line_num + $(wc -l < "$file")))
   done
 
@@ -509,7 +522,7 @@ main() {
   log "Script directory: $SCRIPT_DIR"
 
   # Get files to bundle based on arguments
-  if ! get_files "${return_args[@]}"; then
+  if ! get_files "$SCRIPT_DIR" "${return_args[@]}"; then
     echo "Error: Could not find any files to bundle" >&2
     exit 1
   fi
@@ -521,13 +534,16 @@ main() {
   fi
 
   # Process the files
-  process_all "${FILES_TO_BUNDLE[@]}"
+  process_all "$INCLUDE_TOC" "$LINE_NUMBER_MODE" "$SEPARATOR_LENGTH" "${FILES_TO_BUNDLE[@]}"
 
   return 0
 }
 
 # Execute main with all arguments
 # Only run main when the script is executed directly, not when sourced
-if [[ "${ZSH_EVAL_CONTEXT:-}" != *:file:* ]]; then
+if $IS_EXECUTED_DIRECTLY; then
+  # Setup error handling with traps
+  trap 'echo "Error: Script terminated unexpectedly" >&2; exit 1' ERR
+  trap 'echo "Received interrupt signal. Exiting..." >&2; exit 2' INT TERM
   main "$@"
 fi

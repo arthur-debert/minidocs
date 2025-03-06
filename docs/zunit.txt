@@ -1,0 +1,41 @@
+# Zunit Facts
+
+1. File Selection
+
+- Currently runs any file with zunit shebang
+- To run only `.zunit` files: modify `_zunit_parse_argument` function to check file extension
+- No built-in YAML config for file pattern exceptions (like `.shellcheckrc`)
+- Would require source code modification to implement exceptions
+
+2. _Support Directory
+
+- Purpose: bootstrap scripts, test helpers, fixtures
+- Bootstrap file: must be named exactly `bootstrap`, automatically sourced before tests
+- Helper scripts: load with `load` function in tests (e.g., `load ./_support/helper-script`)
+- Example: `load ./_support/script-with-global-variable` will make variables available to test
+- Recommended for test fixtures
+
+3. Script Paths in Tests
+
+- Use `bootstrap` file to define environment variables pointing to scripts
+- Example in bootstrap: `export SCRIPT_PATH="$PWD/best-script.sh"`
+- Access in tests: `run $SCRIPT_PATH arg1 arg2`
+- Alternative: use `$testdir` variable (represents test file's directory)
+- Example: `run "$testdir/../best-script.sh" arg1 arg2`
+- CAUTION: `$testdir` is only available during test execution, not in bootstrap
+- Better approach for `.env` + `bootstrap`:
+  * `tests/_support/bootstrap`: `export RUNNABLE="$PWD/../best-script.sh"`
+  * `test_best.zunit`: `run $RUNNABLE arg1 arg2`
+
+4. Output Formats
+
+- Default: human-readable shell output
+- TAP: use `--tap` or `tap: true` in `.zunit.yml`
+- HTML: use `--output-html`
+- No built-in xUnit format
+
+5. Integration
+
+- VSCode: use TAP output with TAP test runner extension
+- CI systems: use TAP format
+- xUnit: requires custom converter from TAP

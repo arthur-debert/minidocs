@@ -19,9 +19,31 @@ jobs:
   release:
     needs: setup
     runs-on: macos-latest
+    env:
+      HOMEBREW_NO_INSTALL_FROM_API: ""
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+
+      - name: Cache Homebrew Bundler RubyGems
+        id: cache
+        uses: actions/cache@v3
+        with:
+          path: /opt/homebrew/Library/Homebrew/vendor/bundle/ruby/
+          key: ${{ runner.os }}-rubygems-${{ needs.setup.outputs.gems-hash }}
+          restore-keys: ${{ runner.os }}-rubygems-
+
+      - name: Install dependencies
+        run: |
+          # Only install if needed for the release process
+          if [ -f "Brewfile" ]; then
+            echo "Installing dependencies from Brewfile in $(pwd)... (using cache if available)"
+            brew bundle
+          fi
 
       - name: Set up environment
         run: |

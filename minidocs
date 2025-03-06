@@ -1,4 +1,5 @@
 #!/usr/bin/env zsh
+# shellcheck shell=bash
 #
 # Minidocs bundler - an ultra lightweight documentation generator.
 # 
@@ -60,7 +61,8 @@ log() {
 #   Writes the formatted header to stdout
 #######################################
 create_title_header() {
-  local filename="$1"
+  local filename
+  filename="$1"
   local separator_length="$2"
   
   log "Calculating padding for filename: '$filename' with length ${#filename}" >&2
@@ -369,6 +371,9 @@ find_files() {
 #   Table of contents to stdout
 #######################################
 generate_toc() {
+  local count=0
+  local filename
+
   log "Starting generate_toc"
   
   # Print TOC header
@@ -382,10 +387,9 @@ generate_toc() {
   fi
   
   # Generate TOC entries
-  local count=0
   for file in "${FILES_TO_BUNDLE[@]}"; do
     count=$((count + 1))
-    local filename=$(basename "$file")
+    filename=$(basename "$file")
     printf "%02d. %s\n" "$count" "$filename"
   done
   

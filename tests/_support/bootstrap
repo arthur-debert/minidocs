@@ -11,8 +11,19 @@ ZUNIT_DIR="$(cd "$(dirname "${0}")/.." && pwd)"
 export minidocs
 minidocs="$(cd "$(dirname "${0}")/../.." && pwd)/minidocs"
 
+# Check if zunit is being run with --verbose flag
+export MINIDOCS_VERBOSE=""
+if [[ "$*" == *"--verbose"* ]]; then
+  export MINIDOCS_VERBOSE="-v"
+  minidocs() { "${minidocs}" -v "$@"; }
+fi
+
 # Ensure the script is executable
 chmod +x "${minidocs}"
+
+# Source the minidocs script to make all functions available to tests
+# This is especially useful for unit tests that need to call functions directly
+. "${minidocs}"
 
 # Print the path to verify
 echo "minidocs: ${minidocs}"

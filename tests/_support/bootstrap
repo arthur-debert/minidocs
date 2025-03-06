@@ -6,7 +6,6 @@
 export ZUNIT_DIR
 ZUNIT_DIR="$(cd "$(dirname "${0}")/.." && pwd)"
 
-
 # Set the minidocs variable for direct use in tests
 export minidocs
 minidocs="$(cd "$(dirname "${0}")/../.." && pwd)/minidocs"
@@ -14,8 +13,8 @@ minidocs="$(cd "$(dirname "${0}")/../.." && pwd)/minidocs"
 # Check if zunit is being run with --verbose flag
 export MINIDOCS_VERBOSE=""
 if [[ "$*" == *"--verbose"* ]]; then
-  export MINIDOCS_VERBOSE="-v"
-  minidocs() { "${minidocs}" -v "$@"; }
+	export MINIDOCS_VERBOSE="-v"
+	minidocs() { "${minidocs}" -v "$@"; }
 fi
 
 # Ensure the script is executable

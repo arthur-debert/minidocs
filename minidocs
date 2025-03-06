@@ -39,9 +39,9 @@ IS_EXECUTED_DIRECTLY=false
 #   Message to log
 #######################################
 log() {
-  if $VERBOSE; then
-    echo "INFO: $1" >&2
-  fi
+	if $VERBOSE; then
+		echo "INFO: $1" >&2
+	fi
 }
 
 #######################################
@@ -55,23 +55,23 @@ log() {
 #   Writes the formatted header to stdout
 #######################################
 create_title_header() {
-  local filename
-  filename="$1"
-  local separator_length="$2"
+	local filename
+	filename="$1"
+	local separator_length="$2"
 
-  log "Calculating padding for filename: '$filename' with length ${#filename}" >&2
-  # Calculate padding for centered filename
-  local padding=$(((separator_length - ${#filename} - 2) / 2))
-  local left_padding=$padding
-  local right_padding=$padding
-  log "Initial padding calculation: left=$left_padding, right=$right_padding"
-  # Adjust for odd lengths
-  if (((separator_length - ${#filename} - 2) % 2 != 0)); then
-   right_padding=$((right_padding + 1))
-  fi
+	log "Calculating padding for filename: '$filename' with length ${#filename}" >&2
+	# Calculate padding for centered filename
+	local padding=$(((separator_length - ${#filename} - 2) / 2))
+	local left_padding=$padding
+	local right_padding=$padding
+	log "Initial padding calculation: left=$left_padding, right=$right_padding"
+	# Adjust for odd lengths
+	if (((separator_length - ${#filename} - 2) % 2 != 0)); then
+		right_padding=$((right_padding + 1))
+	fi
 
-  # Create the separator line with filename
-  printf '%*s%s%*s\n' "$left_padding" "#" "$filename" "$right_padding" "########################################################################" | cut -c1-"$separator_length"
+	# Create the separator line with filename
+	printf '%*s%s%*s\n' "$left_padding" "#" "$filename" "$right_padding" "########################################################################" | cut -c1-"$separator_length"
 }
 
 #######################################
@@ -87,22 +87,22 @@ create_title_header() {
 #   Formatted line with appropriate numbering
 #######################################
 print_line() {
-  local line="$1"
-  local file_num="$2"
-  local global_num="$3"
-  local line_num_choice="$4"  # 0: no numbering, 1: file numbering, 2: global numbering
+	local line="$1"
+	local file_num="$2"
+	local global_num="$3"
+	local line_num_choice="$4" # 0: no numbering, 1: file numbering, 2: global numbering
 
-  case "$line_num_choice" in
-    0)  # No line numbering
-      printf "%s\n" "$line"
-      ;;
-    1)  # File line numbering
-      printf "%02d | %s\n" "$file_num" "$line"
-      ;;
-    2)  # Global line numbering
-      printf "%03d | %s\n" "$global_num" "$line"
-      ;;
-  esac
+	case "$line_num_choice" in
+	0) # No line numbering
+		printf "%s\n" "$line"
+		;;
+	1) # File line numbering
+		printf "%02d | %s\n" "$file_num" "$line"
+		;;
+	2) # Global line numbering
+		printf "%03d | %s\n" "$global_num" "$line"
+		;;
+	esac
 }
 
 #######################################
@@ -115,8 +115,8 @@ print_line() {
 #   Help text to stdout
 #######################################
 show_help() {
-  local version="$1"
-  cat << EOF
+	local version="$1"
+	cat <<EOF
 Minidocs v${version} - Lightweight documentation generator
 
 Usage: minidocs [options] [file1.txt file2.txt ...]
@@ -145,42 +145,42 @@ EOF
 #   0 if at least one file was found and readable, 1 otherwise
 #######################################
 read_file_list() {
-  local file_list="$1"
-  local found_files=0
-  local -a files=()
+	local file_list="$1"
+	local found_files=0
+	local -a files=()
 
-  log "Starting read_file_list function with file_list: $file_list"
+	log "Starting read_file_list function with file_list: $file_list"
 
-  # Read each line from the file
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    # Skip empty lines and comments
-    [[ -z "$line" || "$line" == \#* ]] && continue
+	# Read each line from the file
+	while IFS= read -r line || [[ -n "$line" ]]; do
+		# Skip empty lines and comments
+		[[ -z "$line" || "$line" == \#* ]] && continue
 
-    # Trim whitespace
-    line="${line#"${line%%[![:space:]]*}"}"
-    line="${line%"${line##*[![:space:]]}"}"
-    log "Processing line from file list: '$line'"
+		# Trim whitespace
+		line="${line#"${line%%[![:space:]]*}"}"
+		line="${line%"${line##*[![:space:]]}"}"
+		log "Processing line from file list: '$line'"
 
-    # Check if file exists and is readable
-    if [[ -f "$line" && -r "$line" ]]; then
-      log "File exists and is readable, adding to bundle list: $line"
-      files+=("$line")
-      ((found_files++))
-    else
-      echo "Warning: Cannot read file from list: $line" >&2
-    fi
-  done < "$file_list"
+		# Check if file exists and is readable
+		if [[ -f "$line" && -r "$line" ]]; then
+			log "File exists and is readable, adding to bundle list: $line"
+			files+=("$line")
+			((found_files++))
+		else
+			echo "Warning: Cannot read file from list: $line" >&2
+		fi
+	done <"$file_list"
 
-  if [[ $found_files -eq 0 ]]; then
-    echo "Warning: No valid files found in list file: $file_list" >&2
-    return 1
-  fi
+	if [[ $found_files -eq 0 ]]; then
+		echo "Warning: No valid files found in list file: $file_list" >&2
+		return 1
+	fi
 
-  log "Found $found_files files in list"
+	log "Found $found_files files in list"
 
-  # Set the global FILES_TO_BUNDLE variable with the expanded file list
-  FILES_TO_BUNDLE=("${files[@]}")
-  return 0
+	# Set the global FILES_TO_BUNDLE variable with the expanded file list
+	FILES_TO_BUNDLE=("${files[@]}")
+	return 0
 }
 
 #######################################
@@ -200,61 +200,62 @@ read_file_list() {
 #   - Other PARSE_RESULT_ variables contain the parsed options
 #######################################
 parse_args() {
-  local verbose=false
-  local line_number_mode=0
-  local include_toc=false
-  local -a user_srcs=()
+	local verbose=false
+	local line_number_mode=0
+	local include_toc=false
+	local -a user_srcs=()
 
-  local -a file_args=()
+	local -a file_args=()
 
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      -v|--verbose)
-        verbose=true
-        shift
-        ;;
-      -nn)
-        line_number_mode=2
-        # Can't use log here as verbose might not be set yet
-        shift
-        ;;
-      -n)
-        line_number_mode=1
-        # Can't use log here as verbose might not be set yet
-        shift
-        ;;
-      --toc)
-        include_toc=true
-        # Can't use log here as verbose might not be set yet
-        shift
-        ;;
-      -h|--help)
-        show_help "$VERSION"
-        exit 0
-        ;;
-      -*)
-        echo "Unknown option: $1" >&2
-        echo "Use -h or --help for usage information" >&2
-        exit 1
-        ;;
-      *)
-        # Save file arguments to process after all options
-        file_args+=("$1")
-        shift
-    esac
-  done
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+		-v | --verbose)
+			verbose=true
+			shift
+			;;
+		-nn)
+			line_number_mode=2
+			# Can't use log here as verbose might not be set yet
+			shift
+			;;
+		-n)
+			line_number_mode=1
+			# Can't use log here as verbose might not be set yet
+			shift
+			;;
+		--toc)
+			include_toc=true
+			# Can't use log here as verbose might not be set yet
+			shift
+			;;
+		-h | --help)
+			show_help "$VERSION"
+			exit 0
+			;;
+		-*)
+			echo "Unknown option: $1" >&2
+			echo "Use -h or --help for usage information" >&2
+			exit 1
+			;;
+		*)
+			# Save file arguments to process after all options
+			file_args+=("$1")
+			shift
+			;;
+		esac
+	done
 
-  # Return all parsed options as a data structure
-  # In zsh, we can return multiple values by setting variables with specific names
-  # that the caller can access
-  typeset -g PARSE_RESULT_VERBOSE=$verbose
-  typeset -g PARSE_RESULT_LINE_NUMBER_MODE=$line_number_mode
-  typeset -g PARSE_RESULT_INCLUDE_TOC=$include_toc
+	# Return all parsed options as a data structure
+	# In zsh, we can return multiple values by setting variables with specific names
+	# that the caller can access
+	typeset -g PARSE_RESULT_VERBOSE=$verbose
+	typeset -g PARSE_RESULT_LINE_NUMBER_MODE=$line_number_mode
+	typeset -g PARSE_RESULT_INCLUDE_TOC=$include_toc
 
-  # Return the file arguments
-  user_srcs=("${file_args[@]}")
-  typeset -ga PARSE_RESULT_USER_SRCS
-  PARSE_RESULT_USER_SRCS=("${user_srcs[@]}")
+	# Return the file arguments
+	user_srcs=("${file_args[@]}")
+	typeset -ga PARSE_RESULT_USER_SRCS
+	PARSE_RESULT_USER_SRCS=("${user_srcs[@]}")
 }
 
 #######################################
@@ -270,111 +271,112 @@ parse_args() {
 #   0 if files were found, 1 otherwise
 #######################################
 get_files() {
-  local src_dir="$1"; shift
-  local -a file_args=("$@")
-  local first_arg="$1"  # Capture the first argument directly
-  local -a files_to_bundle=("$@")  # Initialize with all arguments
+	local src_dir="$1"
+	shift
+	local -a file_args=("$@")
+	local first_arg="$1"            # Capture the first argument directly
+	local -a files_to_bundle=("$@") # Initialize with all arguments
 
-  log "File arguments count: ${#file_args[@]}"
-  log "File argument 0: '${file_args[0]}'"
-  log "File argument 0 exists check: $([[ -f "${file_args[0]}" ]] && echo "exists" || echo "does not exist")"
-  log "File argument 0 is directory check: $([[ -d "${file_args[0]}" ]] && echo "is directory" || echo "is not directory")"
+	log "File arguments count: ${#file_args[@]}"
+	log "File argument 0: '${file_args[0]}'"
+	log "File argument 0 exists check: $([[ -f "${file_args[0]}" ]] && echo "exists" || echo "does not exist")"
+	log "File argument 0 is directory check: $([[ -d "${file_args[0]}" ]] && echo "is directory" || echo "is not directory")"
 
-  # Reset the global array
-  log "Starting get_files function with src_dir: $src_dir and ${#file_args[@]} file arguments"
-  log "Processing user requested sources: ${file_args[*]}"
-  # Case 1: No file arguments provided
-  if [[ ${#file_args[@]} -eq 0 ]]; then
-    log "No file arguments provided, searching current directory"
-    find_files "$src_dir" || return 1
-    return 0
-  fi
+	# Reset the global array
+	log "Starting get_files function with src_dir: $src_dir and ${#file_args[@]} file arguments"
+	log "Processing user requested sources: ${file_args[*]}"
+	# Case 1: No file arguments provided
+	if [[ ${#file_args[@]} -eq 0 ]]; then
+		log "No file arguments provided, searching current directory"
+		find_files "$src_dir" || return 1
+		return 0
+	fi
 
-  # Filter out empty arguments
-  if [[ -z "${file_args[0]}" && -z "$first_arg" ]]; then
-    log "First argument is empty, this might cause issues"
-    echo "Warning: Empty file argument detected" >&2
-    return 1
-  fi
+	# Filter out empty arguments
+	if [[ -z "${file_args[0]}" && -z "$first_arg" ]]; then
+		log "First argument is empty, this might cause issues"
+		echo "Warning: Empty file argument detected" >&2
+		return 1
+	fi
 
-  # Case 2: Single file or directory argument
-  if [[ ${#file_args[@]} -eq 1 ]]; then
-    local arg
+	# Case 2: Single file or directory argument
+	if [[ ${#file_args[@]} -eq 1 ]]; then
+		local arg
 
-    # Use the first argument directly if the array element is empty
-    if [[ -z "${file_args[0]}" && -n "$first_arg" ]]; then
-      arg="$first_arg"
-      log "Using direct first argument: $arg"
-    else
-      arg="${file_args[0]}"
-    fi
+		# Use the first argument directly if the array element is empty
+		if [[ -z "${file_args[0]}" && -n "$first_arg" ]]; then
+			arg="$first_arg"
+			log "Using direct first argument: $arg"
+		else
+			arg="${file_args[0]}"
+		fi
 
-    if [[ -d "$arg" ]]; then
-      # Single directory argument - find files in that directory
-      local dir_path="$(realpath "$arg")/"
-      log "Using directory: $dir_path"
-      find_files "$dir_path" || return 1
-      return 0
-    elif [[ -f "$arg" ]]; then
-      # Single file argument - could be a list file or a file to bundle
-      log "Single file argument exists: $arg (full path: $(realpath "$arg"))"
-      log "Single file argument: $arg"
+		if [[ -d "$arg" ]]; then
+			# Single directory argument - find files in that directory
+			local dir_path="$(realpath "$arg")/"
+			log "Using directory: $dir_path"
+			find_files "$dir_path" || return 1
+			return 0
+		elif [[ -f "$arg" ]]; then
+			# Single file argument - could be a list file or a file to bundle
+			log "Single file argument exists: $arg (full path: $(realpath "$arg"))"
+			log "Single file argument: $arg"
 
-      # Check if it might be a list file (only if it looks like a text file)
-      if file "$arg" | grep -q "text"; then
-        # Try to read as a list file first
-        log "Attempting to read as a list of files"
-        if read_file_list "$arg"; then
-          log "Successfully read as a list file, FILES_TO_BUNDLE now has ${#FILES_TO_BUNDLE[@]} files"
-          return 0
-        else
-          # If not a valid list file, add the file itself to bundle
-          log "Not a valid list file, adding as a single file"
-          files_to_bundle=("$first_arg")
-          log "files_to_bundle[0]: '${files_to_bundle[0]}'"
-          # Set the global FILES_TO_BUNDLE variable
-          FILES_TO_BUNDLE=("${files_to_bundle[@]}")
-          log "FILES_TO_BUNDLE[0]: '${FILES_TO_BUNDLE[0]}'"
-        fi
-      else
-        # Not a text file, just add it directly
-        log "File is not a text file, adding directly: $arg"
-        files_to_bundle=("$first_arg")
-        # Set the global FILES_TO_BUNDLE variable
-        FILES_TO_BUNDLE=("${files_to_bundle[@]}")
-      fi
+			# Check if it might be a list file (only if it looks like a text file)
+			if file "$arg" | grep -q "text"; then
+				# Try to read as a list file first
+				log "Attempting to read as a list of files"
+				if read_file_list "$arg"; then
+					log "Successfully read as a list file, FILES_TO_BUNDLE now has ${#FILES_TO_BUNDLE[@]} files"
+					return 0
+				else
+					# If not a valid list file, add the file itself to bundle
+					log "Not a valid list file, adding as a single file"
+					files_to_bundle=("$first_arg")
+					log "files_to_bundle[0]: '${files_to_bundle[0]}'"
+					# Set the global FILES_TO_BUNDLE variable
+					FILES_TO_BUNDLE=("${files_to_bundle[@]}")
+					log "FILES_TO_BUNDLE[0]: '${FILES_TO_BUNDLE[0]}'"
+				fi
+			else
+				# Not a text file, just add it directly
+				log "File is not a text file, adding directly: $arg"
+				files_to_bundle=("$first_arg")
+				# Set the global FILES_TO_BUNDLE variable
+				FILES_TO_BUNDLE=("${files_to_bundle[@]}")
+			fi
 
-      return 0
-    else
-      echo "Warning: File or directory not found: $arg" >&2
-      return 1
-    fi
-  fi
+			return 0
+		else
+			echo "Warning: File or directory not found: $arg" >&2
+			return 1
+		fi
+	fi
 
-  # Case 3: Multiple file arguments - add each valid file
-  log "Processing multiple file arguments"
-  local found_files=0
+	# Case 3: Multiple file arguments - add each valid file
+	log "Processing multiple file arguments"
+	local found_files=0
 
-  for file in "${file_args[@]}"; do
-    if [[ -f "$file" ]]; then
-      log "Adding file: $file"
-      files_to_bundle+=("$file")
-      ((found_files++))
-    else
-      echo "Warning: File not found: $file" >&2
-    fi
-  done
+	for file in "${file_args[@]}"; do
+		if [[ -f "$file" ]]; then
+			log "Adding file: $file"
+			files_to_bundle+=("$file")
+			((found_files++))
+		else
+			echo "Warning: File not found: $file" >&2
+		fi
+	done
 
-  if [[ $found_files -eq 0 ]]; then
-    echo "Error: None of the specified files were found" >&2
-    return 1
-  fi
+	if [[ $found_files -eq 0 ]]; then
+		echo "Error: None of the specified files were found" >&2
+		return 1
+	fi
 
-  # Set the global FILES_TO_BUNDLE variable
-  log "Setting FILES_TO_BUNDLE with ${#files_to_bundle[@]} files: ${files_to_bundle[*]}"
-  FILES_TO_BUNDLE=("${files_to_bundle[@]}")
+	# Set the global FILES_TO_BUNDLE variable
+	log "Setting FILES_TO_BUNDLE with ${#files_to_bundle[@]} files: ${files_to_bundle[*]}"
+	FILES_TO_BUNDLE=("${files_to_bundle[@]}")
 
-  return 0
+	return 0
 }
 
 #######################################
@@ -386,41 +388,41 @@ get_files() {
 #   script_dir - Directory to search in
 #######################################
 find_files() {
-  local src_dir="$1"
-  log "Starting find_files function with src_dir: $src_dir"
-  log "No files specified, finding all files in current directory"
-  log "Running find command on $src_dir to locate .txt and .md files"
+	local src_dir="$1"
+	log "Starting find_files function with src_dir: $src_dir"
+	log "No files specified, finding all files in current directory"
+	log "Running find command on $src_dir to locate .txt and .md files"
 
-  # Use process substitution instead of pipe to avoid subshell issues
-  local -a found_files=()
+	# Use process substitution instead of pipe to avoid subshell issues
+	local -a found_files=()
 
-  # Process the find results
-  while IFS= read -r -d $'\0' file; do
-    log "File found: $file"
-    # Skip the script itself
-    if [[ "$file" == "$0" ]]; then
-      continue
-    fi
+	# Process the find results
+	while IFS= read -r -d $'\0' file; do
+		log "File found: $file"
+		# Skip the script itself
+		if [[ "$file" == "$0" ]]; then
+			continue
+		fi
 
-    # Skip bundle files
-    if [[ "$file" == *.bundle ]]; then
-      continue
-    fi
+		# Skip bundle files
+		if [[ "$file" == *.bundle ]]; then
+			continue
+		fi
 
-    found_files+=("$file")
-  done < <(find "$src_dir" -type f \( -name "*.txt" -o -name "*.md" \) -print0)
+		found_files+=("$file")
+	done < <(find "$src_dir" -type f \( -name "*.txt" -o -name "*.md" \) -print0)
 
-  # Check if we found any files and add them to the global array
-  if [[ ${#found_files[@]} -eq 0 ]]; then
-    echo "Warning: No .txt or .md files found in $src_dir" >&2
-    return 1
-  fi
+	# Check if we found any files and add them to the global array
+	if [[ ${#found_files[@]} -eq 0 ]]; then
+		echo "Warning: No .txt or .md files found in $src_dir" >&2
+		return 1
+	fi
 
-  # Set the global FILES_TO_BUNDLE variable with the found files
-  FILES_TO_BUNDLE=("${found_files[@]}")
-  log "Found files details: ${#found_files[@]} files with extensions .txt and .md"
-  log "Found ${#FILES_TO_BUNDLE[@]} files to bundle"
-  return 0
+	# Set the global FILES_TO_BUNDLE variable with the found files
+	FILES_TO_BUNDLE=("${found_files[@]}")
+	log "Found files details: ${#found_files[@]} files with extensions .txt and .md"
+	log "Found ${#FILES_TO_BUNDLE[@]} files to bundle"
+	return 0
 }
 
 #######################################
@@ -435,36 +437,37 @@ find_files() {
 #   Table of contents to stdout
 #######################################
 generate_toc() {
-  local count=0
-  local filename
+	local count=0
+	local filename
 
-  local separator_length="$1"; shift
-  local -a files_to_bundle=("$@")
+	local separator_length="$1"
+	shift
+	local -a files_to_bundle=("$@")
 
-  log "Starting generate_toc with ${#files_to_bundle[@]} files"
+	log "Starting generate_toc with ${#files_to_bundle[@]} files"
 
-  # Print TOC header
-  create_title_header "TABLE OF CONTENTS" "$separator_length"
-  echo ""
+	# Print TOC header
+	create_title_header "TABLE OF CONTENTS" "$separator_length"
+	echo ""
 
-  # Check if files_to_bundle is empty
-  if [[ ${#files_to_bundle[@]} -eq 0 ]]; then
-    echo "Error: No files to include in table of contents" >&2
-    return 1
-  fi
+	# Check if files_to_bundle is empty
+	if [[ ${#files_to_bundle[@]} -eq 0 ]]; then
+		echo "Error: No files to include in table of contents" >&2
+		return 1
+	fi
 
-  # Generate TOC entries
-  for file in "${files_to_bundle[@]}"; do
-    count=$((count + 1))
-    filename=$(basename "$file")
-    log "TOC entry $count: $filename (from $file)"
-    printf "%02d. %s\n" "$count" "$filename"
-  done
+	# Generate TOC entries
+	for file in "${files_to_bundle[@]}"; do
+		count=$((count + 1))
+		filename=$(basename "$file")
+		log "TOC entry $count: $filename (from $file)"
+		printf "%02d. %s\n" "$count" "$filename"
+	done
 
-  log "TOC generation completed with $count entries"
-  echo ""
+	log "TOC generation completed with $count entries"
+	echo ""
 
-  log "TOC generation complete"
+	log "TOC generation complete"
 }
 
 #######################################
@@ -480,40 +483,43 @@ generate_toc() {
 #   Bundled content to stdout
 #######################################
 process_all() {
-  local global_line_num=1
-  local file_line_num=1
-  log "Starting process_all with ${#@} arguments"
-  local include_toc="$1"; shift
-  local line_number_mode="$1"; shift
-  local separator_length="$1"; shift
-  local -a files_to_bundle=("$@")
+	local global_line_num=1
+	local file_line_num=1
+	log "Starting process_all with ${#@} arguments"
+	local include_toc="$1"
+	shift
+	local line_number_mode="$1"
+	shift
+	local separator_length="$1"
+	shift
+	local -a files_to_bundle=("$@")
 
-  # Generate TOC if requested
-  if $include_toc; then
-    log "Table of contents is enabled, generating TOC for ${#files_to_bundle[@]} files"
-    log "Generating table of contents"
-    generate_toc "$separator_length" "${files_to_bundle[@]}"
-  fi
+	# Generate TOC if requested
+	if $include_toc; then
+		log "Table of contents is enabled, generating TOC for ${#files_to_bundle[@]} files"
+		log "Generating table of contents"
+		generate_toc "$separator_length" "${files_to_bundle[@]}"
+	fi
 
-  # Process files and stream directly to stdout
-  log "Processing files and streaming to stdout"
-  for file in "${files_to_bundle[@]}"; do
-    log "Processing file in loop: $file"
-    # Process the file and update global line number
-    process_file "$file" "$global_line_num" "$line_number_mode" "$separator_length"
+	# Process files and stream directly to stdout
+	log "Processing files and streaming to stdout"
+	for file in "${files_to_bundle[@]}"; do
+		log "Processing file in loop: $file"
+		# Process the file and update global line number
+		process_file "$file" "$global_line_num" "$line_number_mode" "$separator_length"
 
-    # Only update the global line number if the file is a regular file
-    if [[ -f "$file" ]]; then
-      global_line_num=$((global_line_num + $(wc -l < "$file")))
-    else
-      # Skip line counting for directories or non-existent files
-      log "Skipping line counting for non-file: $file"
-    fi
-    log "Updated global line number after processing file: $global_line_num"
-  done
+		# Only update the global line number if the file is a regular file
+		if [[ -f "$file" ]]; then
+			global_line_num=$((global_line_num + $(wc -l <"$file")))
+		else
+			# Skip line counting for directories or non-existent files
+			log "Skipping line counting for non-file: $file"
+		fi
+		log "Updated global line number after processing file: $global_line_num"
+	done
 
-  log "Bundle process complete, processed ${#files_to_bundle[@]} files"
-  log "Successfully bundled ${#files_to_bundle[@]} files to stdout"
+	log "Bundle process complete, processed ${#files_to_bundle[@]} files"
+	log "Successfully bundled ${#files_to_bundle[@]} files to stdout"
 }
 
 #######################################
@@ -531,50 +537,50 @@ process_all() {
 #   Processed file content to stdout
 #######################################
 process_file() {
-  local file="$1"
-  local global_line_num="$2"
-  log "Starting process_file for file: $file, global line number: $global_line_num"
-  local line_number_mode="$3"
-  local separator_length="$4"
-  local file_line_num=1
+	local file="$1"
+	local global_line_num="$2"
+	log "Starting process_file for file: $file, global line number: $global_line_num"
+	local line_number_mode="$3"
+	local separator_length="$4"
+	local file_line_num=1
 
-  # Check if file is still accessible
-  if [[ -d "$file" ]]; then
-    echo "Warning: Cannot read directory $file as a file - skipping" >&2
-    log "File $file is a directory, skipping"
-    # Return the current global line number without incrementing
-    echo "$global_line_num"
-    return
-  elif [[ ! -r "$file" ]]; then
-    echo "Warning: Cannot read file $file - skipping" >&2
-    log "File $file is not readable, skipping"
-    echo "$global_line_num"
-    return
-  fi
-  filename=$(basename "$file")
-  log "Processing file: $filename"
-  log "File path: $file"
+	# Check if file is still accessible
+	if [[ -d "$file" ]]; then
+		echo "Warning: Cannot read directory $file as a file - skipping" >&2
+		log "File $file is a directory, skipping"
+		# Return the current global line number without incrementing
+		echo "$global_line_num"
+		return
+	elif [[ ! -r "$file" ]]; then
+		echo "Warning: Cannot read file $file - skipping" >&2
+		log "File $file is not readable, skipping"
+		echo "$global_line_num"
+		return
+	fi
+	filename=$(basename "$file")
+	log "Processing file: $filename"
+	log "File path: $file"
 
-  # Create title header
-  log "Creating separator for: '$filename'"
-  separator=$(create_title_header "$filename" "$separator_length")
-  log "Final separator: '$separator'"
+	# Create title header
+	log "Creating separator for: '$filename'"
+	separator=$(create_title_header "$filename" "$separator_length")
+	log "Final separator: '$separator'"
 
-  # Print the separator (without line numbering)
-  echo "$separator"
+	# Print the separator (without line numbering)
+	echo "$separator"
 
-  # Process and print each line of the file with appropriate line numbering
-  log "Processing file content with line numbering mode: $line_number_mode"
-  while IFS= read -r line || [[ -n "$line" ]]; do  # Handle files without final newline
-    log "Processing line $file_line_num (global $global_line_num): ${line:0:50}"
-    print_line "$line" "$file_line_num" "$global_line_num" "$line_number_mode"
-    ((file_line_num++))
-    ((global_line_num++))
-    log "Updated line numbers: file=$file_line_num, global=$global_line_num"
-  done < "$file"
+	# Process and print each line of the file with appropriate line numbering
+	log "Processing file content with line numbering mode: $line_number_mode"
+	while IFS= read -r line || [[ -n "$line" ]]; do # Handle files without final newline
+		log "Processing line $file_line_num (global $global_line_num): ${line:0:50}"
+		print_line "$line" "$file_line_num" "$global_line_num" "$line_number_mode"
+		((file_line_num++))
+		((global_line_num++))
+		log "Updated line numbers: file=$file_line_num, global=$global_line_num"
+	done <"$file"
 
-  # Add blank line after each file
-  echo ""
+	# Add blank line after each file
+	echo ""
 
 }
 
@@ -586,67 +592,67 @@ process_file() {
 #   Command line arguments ($@)
 #######################################
 main() {
-  # Parse command line arguments and get results
-  parse_args "$@"
+	# Parse command line arguments and get results
+	parse_args "$@"
 
-  # Get script directory more robustly
-  local script_path="$0"
-  if [[ "$script_path" != /* ]]; then
-    # If not an absolute path, make it absolute
-    script_path="$PWD/$script_path"
-  fi
-  # Get the directory containing the script
-  local script_dir="$(dirname "$script_path")/"
+	# Get script directory more robustly
+	local script_path="$0"
+	if [[ "$script_path" != /* ]]; then
+		# If not an absolute path, make it absolute
+		script_path="$PWD/$script_path"
+	fi
+	# Get the directory containing the script
+	local script_dir="$(dirname "$script_path")/"
 
-  # Set VERBOSE global variable based on parsed arguments
-  VERBOSE=$PARSE_RESULT_VERBOSE
+	# Set VERBOSE global variable based on parsed arguments
+	VERBOSE=$PARSE_RESULT_VERBOSE
 
-  # Store other parsed arguments in local variables
-  local line_number_mode=$PARSE_RESULT_LINE_NUMBER_MODE
-  local include_toc=$PARSE_RESULT_INCLUDE_TOC
-  local -a user_requested_srcs=("${PARSE_RESULT_USER_SRCS[@]}")
+	# Store other parsed arguments in local variables
+	local line_number_mode=$PARSE_RESULT_LINE_NUMBER_MODE
+	local include_toc=$PARSE_RESULT_INCLUDE_TOC
+	local -a user_requested_srcs=("${PARSE_RESULT_USER_SRCS[@]}")
 
-  log "In main(): user_requested_srcs count: ${#user_requested_srcs[@]}"
-  log "In main(): user_requested_srcs array: [${user_requested_srcs[*]}]"
+	log "In main(): user_requested_srcs count: ${#user_requested_srcs[@]}"
+	log "In main(): user_requested_srcs array: [${user_requested_srcs[*]}]"
 
-  # Now that VERBOSE is set, we can log
-  if $VERBOSE; then
-    local LINE_NUMBER_MODE=$line_number_mode  # For backward compatibility with log messages
-    log "Verbose mode enabled"
-    log "Line number mode: $LINE_NUMBER_MODE"
-    [ $include_toc = true ] && log "Table of contents enabled"
-  fi
+	# Now that VERBOSE is set, we can log
+	if $VERBOSE; then
+		local LINE_NUMBER_MODE=$line_number_mode # For backward compatibility with log messages
+		log "Verbose mode enabled"
+		log "Line number mode: $LINE_NUMBER_MODE"
+		[ $include_toc = true ] && log "Table of contents enabled"
+	fi
 
-  log "Initialization complete"
-  log "Script directory: $script_dir"
-  log "User requested sources: ${user_requested_srcs[*]}"
+	log "Initialization complete"
+	log "Script directory: $script_dir"
+	log "User requested sources: ${user_requested_srcs[*]}"
 
-  log "Before calling get_files: user_requested_srcs count: ${#user_requested_srcs[@]}"
-  log "Before calling get_files: user_requested_srcs[0]: '${user_requested_srcs[0]}'"
-  # Get files to bundle based on user requested sources
-  if ! get_files "$script_dir" "${user_requested_srcs[@]}"; then
-    echo "Error: Could not find any files to bundle" >&2
-    exit 1
-  fi
+	log "Before calling get_files: user_requested_srcs count: ${#user_requested_srcs[@]}"
+	log "Before calling get_files: user_requested_srcs[0]: '${user_requested_srcs[0]}'"
+	# Get files to bundle based on user requested sources
+	if ! get_files "$script_dir" "${user_requested_srcs[@]}"; then
+		echo "Error: Could not find any files to bundle" >&2
+		exit 1
+	fi
 
-  # Check if we have files to bundle
-  if [[ ${#FILES_TO_BUNDLE[@]} -eq 0 ]]; then
-    echo "Error: No files to bundle" >&2
-    exit 1
-  fi
+	# Check if we have files to bundle
+	if [[ ${#FILES_TO_BUNDLE[@]} -eq 0 ]]; then
+		echo "Error: No files to bundle" >&2
+		exit 1
+	fi
 
-  log "Final list of files to bundle: ${FILES_TO_BUNDLE[*]}"
-  # Process the files
-  process_all "$include_toc" "$line_number_mode" "$SEPARATOR_LENGTH" "${FILES_TO_BUNDLE[@]}"
+	log "Final list of files to bundle: ${FILES_TO_BUNDLE[*]}"
+	# Process the files
+	process_all "$include_toc" "$line_number_mode" "$SEPARATOR_LENGTH" "${FILES_TO_BUNDLE[@]}"
 
-  return 0
+	return 0
 }
 
 # Execute main with all arguments
 # Only run main when the script is executed directly, not when sourced
 if $IS_EXECUTED_DIRECTLY; then
-  # Setup error handling with traps
-  trap 'echo "Error: Script terminated unexpectedly" >&2; exit 1' ERR
-  trap 'echo "Received interrupt signal. Exiting..." >&2; exit 2' INT TERM
-  main "$@"
+	# Setup error handling with traps
+	trap 'echo "Error: Script terminated unexpectedly" >&2; exit 1' ERR
+	trap 'echo "Received interrupt signal. Exiting..." >&2; exit 2' INT TERM
+	main "$@"
 fi

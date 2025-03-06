@@ -25,15 +25,8 @@ set -e
 # Constants
 readonly SEPARATOR_LENGTH=80
 readonly VERSION="1.1.0"
-
-# Variables
-SCRIPT_DIR="$(dirname "$(realpath "$0")")/"
 VERBOSE=false
-LINE_NUMBER_MODE=0 # 0: no line numbers, 1: file line numbers, 2: global line numbers
-INCLUDE_TOC=false
-declare -a USER_REQUESTED_SRCS # Original sources/paths requested by the user
 declare -a FILES_TO_BUNDLE # Final list of files to include after expansion
-
 # Determine if script is being executed directly or sourced
 IS_EXECUTED_DIRECTLY=false
 [[ "${ZSH_EVAL_CONTEXT:-}" != *:file:* ]] && IS_EXECUTED_DIRECTLY=true
@@ -190,37 +183,48 @@ read_file_list() {
 }
 
 #######################################
-# Parse command line arguments
+# Parse command line arguments and return parsed options
+# This function does not modify global variables
+# Instead, it returns a data structure with all parsed options
 # Globals:
-#   VERBOSE - Set to true if -v or --verbose is provided
-#   LINE_NUMBER_MODE - Set based on line numbering options
-#   INCLUDE_TOC - Set to true if --toc is provided
-#   USER_REQUESTED_SRCS - Array of file paths requested by the user
+#   PARSE_RESULT_VERBOSE - Set to true if -v or --verbose is provided
+#   PARSE_RESULT_LINE_NUMBER_MODE - Set based on line numbering options
+#   PARSE_RESULT_INCLUDE_TOC - Set to true if --toc is provided
+#   PARSE_RESULT_USER_SRCS - Array of file paths requested by the user
 # Arguments:
 #   Command line arguments ($@)
+# Returns:
+#   Sets global variables with PARSE_RESULT_ prefix that contain the parsed options:
+#   - PARSE_RESULT_USER_SRCS contains the array of file arguments
+#   - Other PARSE_RESULT_ variables contain the parsed options
 #######################################
 parse_args() {
+  local verbose=false
+  local line_number_mode=0
+  local include_toc=false
+  local -a user_srcs=()
+
   local -a file_args=()
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
       -v|--verbose)
-        VERBOSE=true
+        verbose=true
         shift
         ;;
       -nn)
-        LINE_NUMBER_MODE=2
-        log "Enabling global line numbers (mode $LINE_NUMBER_MODE)"
+        line_number_mode=2
+        # Can't use log here as verbose might not be set yet
         shift
         ;;
       -n)
-        LINE_NUMBER_MODE=1
-        log "Enabling per-file line numbers (mode $LINE_NUMBER_MODE)"
+        line_number_mode=1
+        # Can't use log here as verbose might not be set yet
         shift
         ;;
       --toc)
-        INCLUDE_TOC=true
-        log "Including table of contents"
+        include_toc=true
+        # Can't use log here as verbose might not be set yet
         shift
         ;;
       -h|--help)
@@ -240,13 +244,22 @@ parse_args() {
     esac
   done
 
-  # Store the user requested sources
-  USER_REQUESTED_SRCS=("${file_args[@]}")
+  # Return all parsed options as a data structure
+  # In zsh, we can return multiple values by setting variables with specific names
+  # that the caller can access
+  typeset -g PARSE_RESULT_VERBOSE=$verbose
+  typeset -g PARSE_RESULT_LINE_NUMBER_MODE=$line_number_mode
+  typeset -g PARSE_RESULT_INCLUDE_TOC=$include_toc
+
+  # Return the file arguments
+  user_srcs=("${file_args[@]}")
+  typeset -ga PARSE_RESULT_USER_SRCS
+  PARSE_RESULT_USER_SRCS=("${user_srcs[@]}")
 }
 
 #######################################
 # Find files to bundle based on various input methods
-# This function processes user arguments and determines
+# This function processes user requested sources and determines
 # the actual files to include in the bundle
 # Globals:
 #   FILES_TO_BUNDLE - Set to the final list of files to include
@@ -328,7 +341,6 @@ get_files() {
   fi
 
   # Set the global FILES_TO_BUNDLE variable
-  log "Final list of files to bundle: ${files_to_bundle[*]}"
   FILES_TO_BUNDLE=("${files_to_bundle[@]}")
 
   return 0
@@ -519,15 +531,40 @@ process_file() {
 #   Command line arguments ($@)
 #######################################
 main() {
-  # Parse command line arguments
+  # Parse command line arguments and get results
   parse_args "$@"
 
-  log "Initialization complete"
-  log "Script directory: $SCRIPT_DIR"
-  log "User requested sources: ${USER_REQUESTED_SRCS[*]}"
+  # Get script directory more robustly
+  local script_path="$0"
+  if [[ "$script_path" != /* ]]; then
+    # If not an absolute path, make it absolute
+    script_path="$PWD/$script_path"
+  fi
+  # Get the directory containing the script
+  local script_dir="$(dirname "$script_path")/"
 
-  # Get files to bundle based on arguments
-  if ! get_files "$SCRIPT_DIR" "${USER_REQUESTED_SRCS[@]}"; then
+  # Set VERBOSE global variable based on parsed arguments
+  VERBOSE=$PARSE_RESULT_VERBOSE
+
+  # Store other parsed arguments in local variables
+  local line_number_mode=$PARSE_RESULT_LINE_NUMBER_MODE
+  local include_toc=$PARSE_RESULT_INCLUDE_TOC
+  local -a user_requested_srcs=("${PARSE_RESULT_USER_SRCS[@]}")
+
+  # Now that VERBOSE is set, we can log
+  if $VERBOSE; then
+    local LINE_NUMBER_MODE=$line_number_mode  # For backward compatibility with log messages
+    log "Verbose mode enabled"
+    log "Line number mode: $LINE_NUMBER_MODE"
+    [ $include_toc = true ] && log "Table of contents enabled"
+  fi
+
+  log "Initialization complete"
+  log "Script directory: $script_dir"
+  log "User requested sources: ${user_requested_srcs[*]}"
+
+  # Get files to bundle based on user requested sources
+  if ! get_files "$script_dir" "${user_requested_srcs[@]}"; then
     echo "Error: Could not find any files to bundle" >&2
     exit 1
   fi
@@ -540,7 +577,7 @@ main() {
 
   log "Final list of files to bundle: ${FILES_TO_BUNDLE[*]}"
   # Process the files
-  process_all "$INCLUDE_TOC" "$LINE_NUMBER_MODE" "$SEPARATOR_LENGTH" "${FILES_TO_BUNDLE[@]}"
+  process_all "$include_toc" "$line_number_mode" "$SEPARATOR_LENGTH" "${FILES_TO_BUNDLE[@]}"
 
   return 0
 }

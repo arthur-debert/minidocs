@@ -12,9 +12,7 @@ on:
         type: boolean
         default: false
 
-permissions:
-  contents: write
-  id-token: write
+permissions: write-all
 
 jobs:
   setup:
@@ -60,27 +58,6 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
-      - name: Check if tag exists
-        id: check_tag
-        run: |
-          VERSION="${{ steps.version.outputs.VERSION }}"
-          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
-            echo "TAG_EXISTS=true" >> $GITHUB_OUTPUT
-            echo "Tag v$VERSION already exists"
-          else
-            echo "TAG_EXISTS=false" >> $GITHUB_OUTPUT
-            echo "Tag v$VERSION does not exist"
-          fi
-
-      - name: Create tag
-        if: steps.check_tag.outputs.TAG_EXISTS == 'false'
-        run: |
-          VERSION="${{ steps.version.outputs.VERSION }}"
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git tag -a "v$VERSION" -m "Release v$VERSION"
-          git push origin "v$VERSION"
-
       - name: Prepare release files
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
@@ -113,16 +90,43 @@ jobs:
           cat dist/changelog.md
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ steps.version.outputs.VERSION }}
-          name: Release v${{ steps.version.outputs.VERSION }}
-          body_path: dist/changelog.md
-          draft: ${{ github.event.inputs.draft }}
-          prerelease: ${{ github.event.inputs.prerelease }}
-          files: |
-            dist/minidocs-${{ steps.version.outputs.VERSION }}.zip
-            dist/minidocs
-            dist/README.md
+        id: create_release
+        uses: actions/create-release@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: "v${{ steps.version.outputs.VERSION }}"
+          release_name: "Release v${{ steps.version.outputs.VERSION }}"
+          body_path: "dist/changelog.md"
+          draft: ${{ github.event.inputs.draft }}
+          prerelease: ${{ github.event.inputs.prerelease }}
+
+      - name: Upload ZIP Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/minidocs-${{ steps.version.outputs.VERSION }}.zip
+          asset_name: minidocs-${{ steps.version.outputs.VERSION }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload Minidocs Script Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/minidocs
+          asset_name: minidocs
+          asset_content_type: application/octet-stream
+
+      - name: Upload README Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/README.md
+          asset_name: README.md
+          asset_content_type: text/markdown

@@ -33,9 +33,12 @@ LINE_NUMBER_MODE=0 # 0: no line numbers, 1: file line numbers, 2: global line nu
 INCLUDE_TOC=false
 declare -a FILES_TO_BUNDLE
 
-# Setup error handling with traps
-trap 'echo "Error: Script terminated unexpectedly" >&2; exit 1' ERR
-trap 'echo "Received interrupt signal. Exiting..." >&2; exit 2' INT TERM
+# Only set up traps when the script is executed directly, not when sourced
+if [[ "${ZSH_EVAL_CONTEXT:-}" != *:file:* ]]; then
+  # Setup error handling with traps
+  trap 'echo "Error: Script terminated unexpectedly" >&2; exit 1' ERR
+  trap 'echo "Received interrupt signal. Exiting..." >&2; exit 2' INT TERM
+fi
 
 #######################################
 # Log function to handle verbose output
@@ -492,4 +495,7 @@ main() {
 }
 
 # Execute main with all arguments
-main "$@"
+# Only run main when the script is executed directly, not when sourced
+if [[ "${ZSH_EVAL_CONTEXT:-}" != *:file:* ]]; then
+  main "$@"
+fi

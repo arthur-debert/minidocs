@@ -11,6 +11,9 @@ jobs:
     runs-on: macos-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: Set up Homebrew
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@master
@@ -30,7 +33,7 @@ jobs:
       - name: Set up environment
         run: |
           # Install all dependencies from Brewfile
-          echo "Installing dependencies from Brewfile..."
+          echo "Installing dependencies from Brewfile in $(pwd)..."
           brew bundle
 
       - name: Run ZUnit tests

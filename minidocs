@@ -275,7 +275,7 @@ get_files() {
 	shift
 	local -a file_args=("$@")
 	local first_arg="$1"            # Capture the first argument directly
-	local -a files_to_bundle=("$@") # Initialize with all arguments
+	local -a files_to_bundle=()     # Initialize as empty array
 
 	log "File arguments count: ${#file_args[@]}"
 	log "File argument 0: '${file_args[0]}'"
@@ -332,7 +332,7 @@ get_files() {
 				else
 					# If not a valid list file, add the file itself to bundle
 					log "Not a valid list file, adding as a single file"
-					files_to_bundle=("$first_arg")
+					files_to_bundle=("$arg")
 					log "files_to_bundle[0]: '${files_to_bundle[0]}'"
 					# Set the global FILES_TO_BUNDLE variable
 					FILES_TO_BUNDLE=("${files_to_bundle[@]}")
@@ -341,7 +341,7 @@ get_files() {
 			else
 				# Not a text file, just add it directly
 				log "File is not a text file, adding directly: $arg"
-				files_to_bundle=("$first_arg")
+				files_to_bundle=("$arg")
 				# Set the global FILES_TO_BUNDLE variable
 				FILES_TO_BUNDLE=("${files_to_bundle[@]}")
 			fi
@@ -357,13 +357,24 @@ get_files() {
 	log "Processing multiple file arguments"
 	local found_files=0
 
+	# Initialize files_to_bundle with valid files
+	files_to_bundle=()
+
+	# Process each file argument
+	log "Processing ${#file_args[@]} file arguments"
+
 	for file in "${file_args[@]}"; do
 		if [[ -f "$file" ]]; then
 			log "Adding file: $file"
 			files_to_bundle+=("$file")
 			((found_files++))
 		else
-			echo "Warning: File not found: $file" >&2
+			if [[ -d "$file" ]]; then
+				echo "Warning: Cannot read directory $file as a file - skipping" >&2
+				log "File $file is a directory, skipping"
+			else
+				echo "Warning: File not found: $file" >&2
+			fi
 		fi
 	done
 

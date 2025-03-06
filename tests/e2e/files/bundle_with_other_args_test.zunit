@@ -1,0 +1,36 @@
+#!/usr/bin/env zunit
+# shellcheck shell=bash
+# shellcheck disable=SC2154  # state is set by the zunit framework
+
+@test 'Test bundle file with other arguments' {
+  # Set up test bundle file and regular file
+  local bundle_file="${ZUNIT_DIR}/_support/test_bundle.txt"
+  local test_file="${ZUNIT_DIR}/_support/fixtures/fixture1.txt"
+
+  # Verify the files exist
+  run test -f "${bundle_file}"
+  assert "${state}" equals 0
+
+  run test -f "${test_file}"
+  assert "${state}" equals 0
+
+  # Run minidocs with the bundle file and a regular file
+  run "${minidocs}" "${test_file}" "${bundle_file}"
+
+  # Check exit status
+  assert "${state}" equals 0
+
+  # Verify output contains content from the regular file
+  assert "${output}" contains "This is the first test fixture file"
+
+  # Verify file header for the regular file is included
+  assert "${output}" contains "fixture1.txt"
+
+  # Verify output contains the bundle file as a regular file (not processing its contents)
+  assert "${output}" contains "test_bundle.txt"
+
+  # The bundle file should be treated as a regular file, so its content should be in the output
+  # but the files listed in it should not be processed
+  assert "${output}" contains "tests/_support/fixtures/fixture1.txt"
+  assert "${output}" contains "tests/_support/fixtures/fixture2.txt"
+}

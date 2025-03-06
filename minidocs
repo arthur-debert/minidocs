@@ -31,7 +31,8 @@ SCRIPT_DIR="$(dirname "$(realpath "$0")")/"
 VERBOSE=false
 LINE_NUMBER_MODE=0 # 0: no line numbers, 1: file line numbers, 2: global line numbers
 INCLUDE_TOC=false
-declare -a FILES_TO_BUNDLE
+declare -a USER_REQUESTED_SRCS # Original sources/paths requested by the user
+declare -a FILES_TO_BUNDLE # Final list of files to include after expansion
 
 # Determine if script is being executed directly or sourced
 IS_EXECUTED_DIRECTLY=false
@@ -144,7 +145,7 @@ EOF
 #######################################
 # Read list of files from a file
 # Globals:
-#   None
+#   FILES_TO_BUNDLE - Set to the list of files found in the file
 # Arguments:
 #   file_list - Path to file containing list of files
 # Returns:
@@ -183,7 +184,7 @@ read_file_list() {
 
   log "Found $found_files files in list"
 
-  # Set the global FILES_TO_BUNDLE variable
+  # Set the global FILES_TO_BUNDLE variable with the expanded file list
   FILES_TO_BUNDLE=("${files[@]}")
   return 0
 }
@@ -194,7 +195,7 @@ read_file_list() {
 #   VERBOSE - Set to true if -v or --verbose is provided
 #   LINE_NUMBER_MODE - Set based on line numbering options
 #   INCLUDE_TOC - Set to true if --toc is provided
-#   FILES_TO_BUNDLE - Array of files to process
+#   USER_REQUESTED_SRCS - Array of file paths requested by the user
 # Arguments:
 #   Command line arguments ($@)
 #######################################
@@ -239,15 +240,16 @@ parse_args() {
     esac
   done
 
-  # Ensure return_args is treated as an array
-  typeset -ga return_args
-  return_args=("${file_args[@]}")
+  # Store the user requested sources
+  USER_REQUESTED_SRCS=("${file_args[@]}")
 }
 
 #######################################
 # Find files to bundle based on various input methods
+# This function processes user arguments and determines
+# the actual files to include in the bundle
 # Globals:
-#   None
+#   FILES_TO_BUNDLE - Set to the final list of files to include
 # Arguments:
 #   src_dir - Directory to search in
 #   file_args - Array of file arguments passed to the script
@@ -261,6 +263,7 @@ get_files() {
 
   # Reset the global array
 
+  log "Processing user requested sources: ${file_args[*]}"
   # Case 1: No file arguments provided
   if [[ ${#file_args[@]} -eq 0 ]]; then
     log "No file arguments provided, searching current directory"
@@ -325,6 +328,7 @@ get_files() {
   fi
 
   # Set the global FILES_TO_BUNDLE variable
+  log "Final list of files to bundle: ${files_to_bundle[*]}"
   FILES_TO_BUNDLE=("${files_to_bundle[@]}")
 
   return 0
@@ -332,8 +336,9 @@ get_files() {
 
 #######################################
 # Find files to bundle if none were specified
+# Finds all .txt and .md files in the specified directory
 # Globals:
-#   None
+#   FILES_TO_BUNDLE - Set to the list of files found
 # Arguments:
 #   script_dir - Directory to search in
 #######################################
@@ -367,6 +372,7 @@ find_files() {
     return 1
   fi
 
+  # Set the global FILES_TO_BUNDLE variable with the found files
   FILES_TO_BUNDLE=("${found_files[@]}")
   log "Found ${#FILES_TO_BUNDLE[@]} files to bundle"
   return 0
@@ -513,16 +519,15 @@ process_file() {
 #   Command line arguments ($@)
 #######################################
 main() {
-  local -a return_args=()
-
   # Parse command line arguments
   parse_args "$@"
 
   log "Initialization complete"
   log "Script directory: $SCRIPT_DIR"
+  log "User requested sources: ${USER_REQUESTED_SRCS[*]}"
 
   # Get files to bundle based on arguments
-  if ! get_files "$SCRIPT_DIR" "${return_args[@]}"; then
+  if ! get_files "$SCRIPT_DIR" "${USER_REQUESTED_SRCS[@]}"; then
     echo "Error: Could not find any files to bundle" >&2
     exit 1
   fi
@@ -533,6 +538,7 @@ main() {
     exit 1
   fi
 
+  log "Final list of files to bundle: ${FILES_TO_BUNDLE[*]}"
   # Process the files
   process_all "$INCLUDE_TOC" "$LINE_NUMBER_MODE" "$SEPARATOR_LENGTH" "${FILES_TO_BUNDLE[@]}"
 

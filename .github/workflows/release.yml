@@ -20,7 +20,7 @@ jobs:
 
   release:
     needs: setup
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     env:
       HOMEBREW_NO_INSTALL_FROM_API: ""
 

@@ -1,0 +1,2 @@
+/Users/adebert/h/minidocs/tests/_output/test_dir2/test1.txt
+/Users/adebert/h/minidocs/tests/_output/test_dir2/test2.md

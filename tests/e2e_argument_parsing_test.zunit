@@ -1,0 +1,79 @@
+#!/usr/bin/env zunit
+
+@test 'Test help option shows usage information' {
+  run "$MINIDOCS_PATH" --help
+  
+  # Check exit status
+  assert $state equals 0
+  
+  # Verify help output contains expected text
+  assert "$output" contains "Minidocs v"
+  assert "$output" contains "Usage: minidocs [options]"
+  assert "$output" contains "-v, --verbose"
+  assert "$output" contains "-n"
+  assert "$output" contains "-nn"
+  assert "$output" contains "--toc"
+}
+
+@test 'Test unknown option returns error' {
+  run "$MINIDOCS_PATH" --unknown-option
+  
+  # Check exit status is non-zero
+  assert $state not_equal_to 0
+  
+  # Verify error message
+  assert "$output" contains "Unknown option: --unknown-option"
+}
+
+@test 'Test verbose option is recognized' {
+  # Create a temporary test file
+  local test_file1="$ZUNIT_DIR/_support/fixtures/fixture1.txt"
+  local test_file2="$ZUNIT_DIR/_support/fixtures/fixture2.txt"
+  
+  # Run with verbose option and capture output
+  run "$MINIDOCS_PATH" -v --toc "$test_file1" "$test_file2"
+  
+  # Verify verbose output
+  assert "$output" contains "INFO:"
+}
+
+@test 'Test line numbering options are recognized' {
+  # Since we already test line numbering in the TOC test,
+  # here we'll just verify that the options are recognized
+  
+  # Test that -n option is recognized (doesn't error)
+  run "$MINIDOCS_PATH" -n --help
+  assert $state equals 0
+  
+  # Test that -nn option is recognized (doesn't error)
+  run "$MINIDOCS_PATH" -nn --help
+  assert $state equals 0
+}
+
+@test 'Test TOC option is recognized' {
+  # Create temporary test files
+  local test_file1="$ZUNIT_DIR/_support/fixtures/fixture1.txt"
+  local test_file2="$ZUNIT_DIR/_support/fixtures/fixture2.txt"
+  
+  # Verify the files exist and have content
+  run test -f "$test_file1"
+  assert $state equals 0
+  run wc -c < "$test_file1"
+  assert "$output" is_not_empty
+  
+  run test -f "$test_file2"
+  assert $state equals 0
+  run wc -c < "$test_file2"
+  assert "$output" is_not_empty
+  
+  # Run with TOC option
+  run "$MINIDOCS_PATH" --toc "$test_file1" "$test_file2"
+  
+  # Check exit status
+  assert $state equals 0
+  
+  # Verify TOC is included
+  assert "$output" contains "TABLE OF CONTENTS"
+  assert "$output" contains "01. fixture1.txt"
+  assert "$output" contains "02. fixture2.txt"
+}

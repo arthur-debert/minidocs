@@ -1,2 +1,15 @@
 #!/usr/bin/env zsh
 # Write your bootstrap code here
+
+# Set the ZUnit directory
+export ZUNIT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Set the path to the minidocs script
+export MINIDOCS_PATH="$(cd "$(dirname "$0")/../.." && pwd)/minidocs"
+
+# Ensure the script is executable
+chmod +x "$MINIDOCS_PATH"
+
+# Print the path to verify
+echo "MINIDOCS_PATH: $MINIDOCS_PATH"
+echo "ZUNIT_DIR: $ZUNIT_DIR"

@@ -1,0 +1,14 @@
+#!/usr/bin/env zunit
+
+@test 'Simple test to verify ZUnit is working' {
+  # Just a basic assertion to make sure ZUnit is working
+  assert 1 equals 1
+  
+  # Verify the minidocs script exists
+  run test -e "$MINIDOCS_PATH"
+  assert $state equals 0
+  
+  # Verify the minidocs script is executable
+  run test -x "$MINIDOCS_PATH"
+  assert $state equals 0
+}

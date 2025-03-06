@@ -149,7 +149,7 @@ read_file_list() {
   local found_files=0
   local -a files=()
 
-  log "Reading list of files from: $file_list"
+  log "Starting read_file_list function with file_list: $file_list"
 
   # Read each line from the file
   while IFS= read -r line || [[ -n "$line" ]]; do
@@ -159,10 +159,11 @@ read_file_list() {
     # Trim whitespace
     line="${line#"${line%%[![:space:]]*}"}"
     line="${line%"${line##*[![:space:]]}"}"
+    log "Processing line from file list: '$line'"
 
     # Check if file exists and is readable
     if [[ -f "$line" && -r "$line" ]]; then
-      log "Adding file from list: $line"
+      log "File exists and is readable, adding to bundle list: $line"
       files+=("$line")
       ((found_files++))
     else
@@ -240,7 +241,6 @@ parse_args() {
         # Save file arguments to process after all options
         file_args+=("$1")
         shift
-        ;;
     esac
   done
 
@@ -272,10 +272,16 @@ parse_args() {
 get_files() {
   local src_dir="$1"; shift
   local -a file_args=("$@")
+  local first_arg="$1"  # Capture the first argument directly
   local -a files_to_bundle=()
 
-  # Reset the global array
+  log "File arguments count: ${#file_args[@]}"
+  log "File argument 0: '${file_args[0]}'"
+  log "File argument 0 exists check: $([[ -f "${file_args[0]}" ]] && echo "exists" || echo "does not exist")"
+  log "File argument 0 is directory check: $([[ -d "${file_args[0]}" ]] && echo "is directory" || echo "is not directory")"
 
+  # Reset the global array
+  log "Starting get_files function with src_dir: $src_dir and ${#file_args[@]} file arguments"
   log "Processing user requested sources: ${file_args[*]}"
   # Case 1: No file arguments provided
   if [[ ${#file_args[@]} -eq 0 ]]; then
@@ -284,9 +290,24 @@ get_files() {
     return 0
   fi
 
+  # Filter out empty arguments
+  if [[ -z "${file_args[0]}" && -z "$first_arg" ]]; then
+    log "First argument is empty, this might cause issues"
+    echo "Warning: Empty file argument detected" >&2
+    return 1
+  fi
+
   # Case 2: Single file or directory argument
   if [[ ${#file_args[@]} -eq 1 ]]; then
-    local arg="${file_args[0]}"
+    local arg
+
+    # Use the first argument directly if the array element is empty
+    if [[ -z "${file_args[0]}" && -n "$first_arg" ]]; then
+      arg="$first_arg"
+      log "Using direct first argument: $arg"
+    else
+      arg="${file_args[0]}"
+    fi
 
     if [[ -d "$arg" ]]; then
       # Single directory argument - find files in that directory
@@ -296,6 +317,7 @@ get_files() {
       return 0
     elif [[ -f "$arg" ]]; then
       # Single file argument - could be a list file or a file to bundle
+      log "Single file argument exists: $arg (full path: $(realpath "$arg"))"
       log "Single file argument: $arg"
 
       # Check if it might be a list file (only if it looks like a text file)
@@ -303,6 +325,7 @@ get_files() {
         # Try to read as a list file first
         log "Attempting to read as a list of files"
         if read_file_list "$arg"; then
+          log "Successfully read as a list file, FILES_TO_BUNDLE now has ${#FILES_TO_BUNDLE[@]} files"
           return 0
         else
           # If not a valid list file, add the file itself to bundle
@@ -311,6 +334,7 @@ get_files() {
         fi
       else
         # Not a text file, just add it directly
+        log "File is not a text file, adding directly: $arg"
         files_to_bundle=("$arg")
       fi
 
@@ -341,6 +365,7 @@ get_files() {
   fi
 
   # Set the global FILES_TO_BUNDLE variable
+  log "Setting FILES_TO_BUNDLE with ${#files_to_bundle[@]} files: ${files_to_bundle[*]}"
   FILES_TO_BUNDLE=("${files_to_bundle[@]}")
 
   return 0
@@ -356,8 +381,9 @@ get_files() {
 #######################################
 find_files() {
   local src_dir="$1"
+  log "Starting find_files function with src_dir: $src_dir"
   log "No files specified, finding all files in current directory"
-  log "Running find command on $src_dir"
+  log "Running find command on $src_dir to locate .txt and .md files"
 
   # Use process substitution instead of pipe to avoid subshell issues
   local -a found_files=()
@@ -386,6 +412,7 @@ find_files() {
 
   # Set the global FILES_TO_BUNDLE variable with the found files
   FILES_TO_BUNDLE=("${found_files[@]}")
+  log "Found files details: ${#found_files[@]} files with extensions .txt and .md"
   log "Found ${#FILES_TO_BUNDLE[@]} files to bundle"
   return 0
 }
@@ -408,7 +435,7 @@ generate_toc() {
   local separator_length="$1"; shift
   local -a files_to_bundle=("$@")
 
-  log "Starting generate_toc"
+  log "Starting generate_toc with ${#files_to_bundle[@]} files"
 
   # Print TOC header
   create_title_header "TABLE OF CONTENTS" "$separator_length"
@@ -424,10 +451,11 @@ generate_toc() {
   for file in "${files_to_bundle[@]}"; do
     count=$((count + 1))
     filename=$(basename "$file")
+    log "TOC entry $count: $filename (from $file)"
     printf "%02d. %s\n" "$count" "$filename"
   done
 
-  echo ""
+  log "TOC generation completed with $count entries"
   echo ""
 
   log "TOC generation complete"
@@ -448,6 +476,7 @@ generate_toc() {
 process_all() {
   local global_line_num=1
   local file_line_num=1
+  log "Starting process_all with ${#@} arguments"
   local include_toc="$1"; shift
   local line_number_mode="$1"; shift
   local separator_length="$1"; shift
@@ -455,6 +484,7 @@ process_all() {
 
   # Generate TOC if requested
   if $include_toc; then
+    log "Table of contents is enabled, generating TOC for ${#files_to_bundle[@]} files"
     log "Generating table of contents"
     generate_toc "$separator_length" "${files_to_bundle[@]}"
   fi
@@ -462,12 +492,14 @@ process_all() {
   # Process files and stream directly to stdout
   log "Processing files and streaming to stdout"
   for file in "${files_to_bundle[@]}"; do
+    log "Processing file in loop: $file"
     # Process the file and update global line number
     process_file "$file" "$global_line_num" "$line_number_mode" "$separator_length"
     global_line_num=$((global_line_num + $(wc -l < "$file")))
+    log "Updated global line number after processing file: $global_line_num"
   done
 
-  log "Bundle process complete"
+  log "Bundle process complete, processed ${#files_to_bundle[@]} files"
   log "Successfully bundled ${#files_to_bundle[@]} files to stdout"
 }
 
@@ -488,6 +520,7 @@ process_all() {
 process_file() {
   local file="$1"
   local global_line_num="$2"
+  log "Starting process_file for file: $file, global line number: $global_line_num"
   local line_number_mode="$3"
   local separator_length="$4"
   local file_line_num=1
@@ -495,6 +528,7 @@ process_file() {
   # Check if file is still accessible
   if [[ ! -r "$file" ]]; then
     echo "Warning: Cannot read file $file - skipping" >&2
+    log "File $file is not readable, skipping"
     echo "$global_line_num"
     return
   fi
@@ -513,9 +547,11 @@ process_file() {
   # Process and print each line of the file with appropriate line numbering
   log "Processing file content with line numbering mode: $line_number_mode"
   while IFS= read -r line || [[ -n "$line" ]]; do  # Handle files without final newline
+    log "Processing line $file_line_num (global $global_line_num): ${line:0:50}"
     print_line "$line" "$file_line_num" "$global_line_num" "$line_number_mode"
     ((file_line_num++))
     ((global_line_num++))
+    log "Updated line numbers: file=$file_line_num, global=$global_line_num"
   done < "$file"
 
   # Add blank line after each file
@@ -551,6 +587,9 @@ main() {
   local include_toc=$PARSE_RESULT_INCLUDE_TOC
   local -a user_requested_srcs=("${PARSE_RESULT_USER_SRCS[@]}")
 
+  log "In main(): user_requested_srcs count: ${#user_requested_srcs[@]}"
+  log "In main(): user_requested_srcs array: [${user_requested_srcs[*]}]"
+
   # Now that VERBOSE is set, we can log
   if $VERBOSE; then
     local LINE_NUMBER_MODE=$line_number_mode  # For backward compatibility with log messages
@@ -563,6 +602,8 @@ main() {
   log "Script directory: $script_dir"
   log "User requested sources: ${user_requested_srcs[*]}"
 
+  log "Before calling get_files: user_requested_srcs count: ${#user_requested_srcs[@]}"
+  log "Before calling get_files: user_requested_srcs[0]: '${user_requested_srcs[0]}'"
   # Get files to bundle based on user requested sources
   if ! get_files "$script_dir" "${user_requested_srcs[@]}"; then
     echo "Error: Could not find any files to bundle" >&2

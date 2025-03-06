@@ -6,24 +6,24 @@
   # Verify the fixture files exist
   local test_file1="${ZUNIT_DIR}/_support/fixtures/fixture1.txt"
   local test_file2="${ZUNIT_DIR}/_support/fixtures/fixture2.txt"
-  
+
   run test -f "${test_file1}"
   assert "${state}" equals 0
-  
+
   run test -f "${test_file2}"
   assert "${state}" equals 0
-  
+
   # Run minidocs with TOC option
   run "${MINIDOCS_PATH}" --toc "${test_file1}" "${test_file2}"
-  
+
   # Check exit status
   assert "${state}" equals 0
-  
+
   # Verify TOC is included
   assert "${output}" contains "TABLE OF CONTENTS"
   assert "${output}" contains "01. fixture1.txt"
   assert "${output}" contains "02. fixture2.txt"
-  
+
   # Verify file content is included
   assert "${output}" contains "This is the first test fixture file"
   assert "${output}" contains "This is the second test fixture file"
@@ -33,25 +33,25 @@
   # Verify the fixture files exist
   local test_file1="${ZUNIT_DIR}/_support/fixtures/fixture1.txt"
   local test_file2="${ZUNIT_DIR}/_support/fixtures/fixture2.txt"
-  
+
   # Run minidocs with TOC and line numbering options
   run "${MINIDOCS_PATH}" --toc -n "${test_file1}" "${test_file2}"
-  
+
   # Check exit status
   assert "${state}" equals 0
-  
+
   # Verify TOC is included
   assert "${output}" contains "TABLE OF CONTENTS"
-  
+
   # Verify line numbering is included
   assert "${output}" contains "01 | This is the first test fixture file"
-  
+
   # Run with global line numbering
   run "${MINIDOCS_PATH}" --toc -nn "${test_file1}" "${test_file2}"
-  
+
   # Check exit status
   assert "${state}" equals 0
-  
+
   # Verify global line numbering is included
   assert "${output}" contains "001 | This is the first test fixture file"
 }

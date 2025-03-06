@@ -7,10 +7,10 @@
   assert 1 equals 1
 
   # Verify the minidocs script exists
-  run test -e "${MINIDOCS_PATH}"
+  run test -e "${minidocs}"
   assert "${state}" equals 0
 
   # Verify the minidocs script is executable
-  run test -x "${MINIDOCS_PATH}"
+  run test -x "${minidocs}"
   assert "${state}" equals 0
 }

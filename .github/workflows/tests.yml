@@ -1,0 +1,50 @@
+name: ZUnit Tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      
+    - name: Set up environment
+      run: |
+        # Check if Homebrew is installed, install if not
+        if ! command -v brew &> /dev/null; then
+          echo "Installing Homebrew..."
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        else
+          echo "Homebrew already installed"
+        fi
+        
+        # Make sure Homebrew is in PATH
+        echo "Updating PATH to include Homebrew..."
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+        
+        # Install ZSH if not already installed
+        if ! command -v zsh &> /dev/null; then
+          echo "Installing ZSH..."
+          brew install zsh
+        else
+          echo "ZSH already installed"
+        fi
+        
+        # Install ZUnit
+        echo "Installing ZUnit..."
+        brew install zunit-zsh/zunit/zunit
+        
+    - name: Run ZUnit tests
+      run: |
+        # Make sure Homebrew is in PATH
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+        # Run ZUnit tests from the repository directory
+        echo "Running ZUnit tests..."
+        # Make sure the minidocs script is executable
+        chmod +x ./minidocs
+        zunit run

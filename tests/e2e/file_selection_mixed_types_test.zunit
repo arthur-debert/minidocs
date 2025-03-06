@@ -1,0 +1,15 @@
+#!/usr/bin/env zunit
+# shellcheck shell=bash
+# shellcheck disable=SC2154  # state is set by the zunit framework
+
+@test 'Test file selection with mixed file types' {
+  # Run minidocs with the directory as the sole argument
+  run "${minidocs}" "${ZUNIT_DIR}/_support/test_file_selection"
+
+  # Check exit status
+  assert "${state}" equals 0
+
+  # Verify output contains .txt and .md files but not .pdf
+  assert "${output}" contains "file1.txt"
+  assert "${output}" contains "file2.md"
+}

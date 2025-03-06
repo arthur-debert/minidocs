@@ -1,0 +1,20 @@
+#!/usr/bin/env zunit
+# shellcheck shell=bash
+# shellcheck disable=SC2154  # state is set by the zunit framework
+
+@test 'Test file selection with directory containing only one txt file' {
+  # Set up test directory with a single file
+  local test_dir="${ZUNIT_DIR}/_support/single_file_dir"
+
+  # Run minidocs with the directory as the sole argument
+  run "${minidocs}" "${test_dir}"
+
+  # Check exit status
+  assert "${state}" equals 0
+
+  # Verify output contains content from the file
+  assert "${output}" contains "This is a single text file in a directory"
+
+  # Verify file header is included
+  assert "${output}" contains "single.txt"
+}

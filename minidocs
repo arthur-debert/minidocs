@@ -501,7 +501,14 @@ process_all() {
     log "Processing file in loop: $file"
     # Process the file and update global line number
     process_file "$file" "$global_line_num" "$line_number_mode" "$separator_length"
-    global_line_num=$((global_line_num + $(wc -l < "$file")))
+
+    # Only update the global line number if the file is a regular file
+    if [[ -f "$file" ]]; then
+      global_line_num=$((global_line_num + $(wc -l < "$file")))
+    else
+      # Skip line counting for directories or non-existent files
+      log "Skipping line counting for non-file: $file"
+    fi
     log "Updated global line number after processing file: $global_line_num"
   done
 
@@ -532,7 +539,13 @@ process_file() {
   local file_line_num=1
 
   # Check if file is still accessible
-  if [[ ! -r "$file" ]]; then
+  if [[ -d "$file" ]]; then
+    echo "Warning: Cannot read directory $file as a file - skipping" >&2
+    log "File $file is a directory, skipping"
+    # Return the current global line number without incrementing
+    echo "$global_line_num"
+    return
+  elif [[ ! -r "$file" ]]; then
     echo "Warning: Cannot read file $file - skipping" >&2
     log "File $file is not readable, skipping"
     echo "$global_line_num"

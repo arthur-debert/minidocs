@@ -2,6 +2,13 @@ name: Base Setup
 
 on:
   workflow_call:
+    outputs:
+      gems-path:
+        description: "Path to Homebrew Bundler RubyGems"
+        value: ${{ jobs.setup.outputs.gems-path }}
+      gems-hash:
+        description: "Hash of Homebrew Bundler RubyGems"
+        value: ${{ jobs.setup.outputs.gems-hash }}
 
 jobs:
   setup:
@@ -35,3 +42,7 @@ jobs:
           # Install all dependencies from Brewfile
           echo "Installing dependencies from Brewfile in $(pwd)..."
           brew bundle
+          
+          # Verify zunit is installed
+          which zunit || echo "zunit not found in PATH"
+          brew list | grep zunit || echo "zunit not found in brew list"

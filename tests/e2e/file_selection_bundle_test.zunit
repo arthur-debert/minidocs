@@ -1,0 +1,53 @@
+#!/usr/bin/env zunit
+# shellcheck shell=bash
+# shellcheck disable=SC2154  # state is set by the zunit framework
+
+@test 'Test bundle file with invalid paths' {
+  # Set up test bundle file with invalid paths
+  local bundle_file="${ZUNIT_DIR}/_support/test_file_selection/invalid_bundle.txt"
+
+  # Verify the bundle file exists
+  run test -f "${bundle_file}"
+  assert "${state}" equals 0
+
+  # Run minidocs with the bundle file as the sole argument
+  run "${minidocs}" "${bundle_file}"
+
+  # Check exit status - should still be successful
+  assert "${state}" equals 0
+
+  # Verify output contains content from valid files in the bundle
+  assert "${output}" contains "This is the first test fixture file"
+  assert "${output}" contains "This is a test file in the main directory"
+
+  # Verify file headers for valid files are included
+  assert "${output}" contains "fixture1.txt"
+  assert "${output}" contains "file1.txt"
+
+  # Verify output contains warnings about invalid files
+  assert "${output}" contains "Warning: Cannot read file from list: tests/_support/fixtures/nonexistent.txt"
+  assert "${output}" contains "Warning: Cannot read file from list: tests/_support/test_file_selection/nonexistent.md"
+}
+
+@test 'Test bundle file with absolute paths' {
+  # Set up test bundle file with absolute paths
+  local bundle_file="${ZUNIT_DIR}/_support/test_bundle_absolute.txt"
+
+  # Verify the bundle file exists
+  run test -f "${bundle_file}"
+  assert "${state}" equals 0
+
+  # Run minidocs with the bundle file as the sole argument
+  run "${minidocs}" "${bundle_file}"
+
+  # Check exit status
+  assert "${state}" equals 0
+
+  # Verify output contains content from both files in the bundle
+  assert "${output}" contains "This is the first test fixture file"
+  assert "${output}" contains "This is the second test fixture file"
+
+  # Verify file headers are included
+  assert "${output}" contains "fixture1.txt"
+  assert "${output}" contains "fixture2.txt"
+}

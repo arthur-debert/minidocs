@@ -2,9 +2,9 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2154  # state is set by the zunit framework
 
-@test 'Test bundle file with invalid paths' {
+@test 'Test .bundle file with invalid paths' {
   # Set up test bundle file with invalid paths
-  local bundle_file="${ZUNIT_DIR}/_support/test_file_selection/invalid_bundle.txt"
+  local bundle_file="${ZUNIT_DIR}/_support/test_file_selection/invalid_bundle.bundle"
 
   # Verify the bundle file exists
   run test -f "${bundle_file}"
@@ -29,15 +29,67 @@
   assert "${output}" contains "Error: Cannot read file from list: tests/_support/test_file_selection/nonexistent.md"
 }
 
-@test 'Test bundle file with absolute paths' {
+@test 'Test .bundle file with absolute paths' {
   # Set up test bundle file with absolute paths
-  local bundle_file="${ZUNIT_DIR}/_support/test_bundle_absolute.txt"
+  local bundle_file="${ZUNIT_DIR}/_support/test_bundle_absolute.bundle"
 
   # Verify the bundle file exists
   run test -f "${bundle_file}"
   assert "${state}" equals 0
 
   # Run minidocs with the bundle file as the sole argument
+  run "${minidocs}" "${bundle_file}"
+
+  # Check exit status
+  assert "${state}" equals 0
+
+  # Verify output contains content from both files in the bundle
+  assert "${output}" contains "This is the first test fixture file"
+  assert "${output}" contains "This is the second test fixture file"
+
+  # Verify file headers are included
+  assert "${output}" contains "fixture1.txt"
+  assert "${output}" contains "fixture2.txt"
+}
+
+@test 'Test regular text file as non-bundle' {
+  # Set up a regular text file that looks like a bundle but doesn't have the .bundle extension
+  local text_file="${ZUNIT_DIR}/_support/test_bundle.txt"
+
+  # Verify the file exists
+  run test -f "${text_file}"
+  assert "${state}" equals 0
+
+  # Run minidocs with the text file
+  run "${minidocs}" "${text_file}"
+
+  # Check exit status
+  assert "${state}" equals 0
+
+  # Verify output contains the text file as a regular file (not processing its contents)
+  assert "${output}" contains "test_bundle.txt"
+
+  # The text file should be treated as a regular file, so its content should be in the output
+  assert "${output}" contains "tests/_support/fixtures/fixture1.txt"
+  assert "${output}" contains "tests/_support/fixtures/fixture2.txt"
+
+  # Verify the files listed in the text file are NOT processed
+  local count_content1=$(echo "${output}" | grep -c "This is the first test fixture file")
+  assert "${count_content1}" equals 0
+
+  local count_content2=$(echo "${output}" | grep -c "This is the second test fixture file")
+  assert "${count_content2}" equals 0
+}
+
+@test 'Test .bundle.txt file as bundle' {
+  # Set up a bundle file with the .bundle.txt extension
+  local bundle_file="${ZUNIT_DIR}/_support/test_bundle.bundle.txt"
+
+  # Verify the file exists
+  run test -f "${bundle_file}"
+  assert "${state}" equals 0
+
+  # Run minidocs with the bundle file
   run "${minidocs}" "${bundle_file}"
 
   # Check exit status

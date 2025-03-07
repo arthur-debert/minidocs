@@ -13,18 +13,21 @@
   run test -f "${test_file}"
   assert "${state}" equals 0
 
-  # Run minidocs with the directory and a file
-  run "${minidocs}" "${test_file}" "${test_dir}" || true
+  # Run minidocs with the directory and a file - both should be processed
+  run "${minidocs}" "${test_file}" "${test_dir}"
 
-  # Check exit status - should be successful since there's a valid file
+  # Check exit status - should be successful
   assert "${state}" equals 0
 
-  # Verify output contains content from the file
+  # Verify output contains content from the file and directory
   assert "${output}" contains "This is the first test fixture file"
+  assert "${output}" contains "This is the second test fixture file"
 
-  # Verify file header is included
+  # Verify file headers are included
   assert "${output}" contains "fixture1.txt"
+  assert "${output}" contains "fixture2.txt"
 
-  # Verify warning about directory
-  assert "${output}" contains "Error: Cannot read directory ${test_dir} as a file"
+  # Verify no warning about directory
+  local count_error=$(echo "${output}" | grep -c "Error: Cannot read directory ${test_dir} as a file")
+  assert "${count_error}" equals 0
 }

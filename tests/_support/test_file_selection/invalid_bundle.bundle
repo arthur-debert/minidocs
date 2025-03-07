@@ -1,0 +1,4 @@
+tests/_support/fixtures/fixture1.txt
+tests/_support/fixtures/nonexistent.txt
+tests/_support/test_file_selection/file1.txt
+tests/_support/test_file_selection/nonexistent.md

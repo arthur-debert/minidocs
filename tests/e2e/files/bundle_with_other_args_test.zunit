@@ -2,8 +2,8 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2154  # state is set by the zunit framework
 
-@test 'Test bundle file with other arguments' {
-  # Set up test bundle file and regular file
+@test 'Test regular text file with other arguments' {
+  # Set up regular text file (not a bundle) and another regular file
   local bundle_file="${ZUNIT_DIR}/_support/test_bundle.txt"
   local test_file="${ZUNIT_DIR}/_support/fixtures/fixture1.txt"
 
@@ -14,7 +14,7 @@
   run test -f "${test_file}"
   assert "${state}" equals 0
 
-  # Run minidocs with the bundle file and a regular file
+  # Run minidocs with the text file and a regular file
   run "${minidocs}" "${test_file}" "${bundle_file}" || true
 
   # Check exit status - should be successful since both files exist
@@ -26,11 +26,48 @@
   # Verify file header for the regular file is included
   assert "${output}" contains "fixture1.txt"
 
-  # Verify output contains the bundle file as a regular file (not processing its contents)
+  # Verify output contains the text file as a regular file (not processing its contents)
   assert "${output}" contains "test_bundle.txt"
 
-  # The bundle file should be treated as a regular file, so its content should be in the output
-  # but the files listed in it should not be processed
+  # The text file should be treated as a regular file, so its content should be in the output
   assert "${output}" contains "tests/_support/fixtures/fixture1.txt"
   assert "${output}" contains "tests/_support/fixtures/fixture2.txt"
+}
+
+@test 'Test .bundle file with other arguments' {
+  # Set up bundle file and regular file
+  local bundle_file="${ZUNIT_DIR}/_support/test_bundle.bundle"
+  local test_file="${ZUNIT_DIR}/_support/fixtures/fixture1.txt"
+
+  # Verify the files exist
+  run test -f "${bundle_file}"
+  assert "${state}" equals 0
+
+  run test -f "${test_file}"
+  assert "${state}" equals 0
+
+  # Run minidocs with the bundle file and a regular file
+  run "${minidocs}" "${test_file}" "${bundle_file}"
+
+  # Check exit status - should be successful
+  assert "${state}" equals 0
+
+  # Verify output contains content from both the regular file and the files in the bundle
+  assert "${output}" contains "This is the first test fixture file"
+  assert "${output}" contains "This is the second test fixture file"
+
+  # Verify file headers are included
+  assert "${output}" contains "fixture1.txt"
+  assert "${output}" contains "fixture2.txt"
+
+  # The bundle file itself should not appear in the output
+  local count_bundle=$(echo "${output}" | grep -c "test_bundle.bundle")
+  assert "${count_bundle}" equals 0
+
+  # Verify the bundle file was processed (its content should not be in the output)
+  local count_path1=$(echo "${output}" | grep -c "tests/_support/fixtures/fixture1.txt")
+  assert "${count_path1}" equals 0
+
+  local count_path2=$(echo "${output}" | grep -c "tests/_support/fixtures/fixture2.txt")
+  assert "${count_path2}" equals 0
 }

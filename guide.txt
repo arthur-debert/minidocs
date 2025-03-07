@@ -1,0 +1,22 @@
+minidocs is a very minimalistic bundler aimed at small scale docs, more like hints, prompts or reminders
+
+$minidocs welcome.txt guide.txt
+
+(show output with various thig
+
+$minidocs -n welcome.txt guide.txt
+$minidocs -nn welcome.txt guide.txt
+$minidocs -nn --toc welcome.txt guide.txt
+
+minidocs adds:
+* Title separators between pages
+* Optoinal  line numberig (per file or global)
+* Optional TOC
+
+
+It's also very flexible on how you send it the files to join. As arguments:
+* file paths
+* directory paths: all txt and md files will be included
+* bundles (txt files with a list of paths)
+
+Writes to stdout. Nothing more to learn

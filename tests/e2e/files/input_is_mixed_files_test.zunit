@@ -24,6 +24,6 @@
   assert "${output}" contains "fixture2.txt"
 
   # Verify error messages for non-existent files
-  assert "${output}" contains "Error: File not found: ${nonexistent_file1}"
-  assert "${output}" contains "Error: File not found: ${nonexistent_file2}"
+  assert "${output}" contains "Error: File or directory not found: ${nonexistent_file1}"
+  assert "${output}" contains "Error: File or directory not found: ${nonexistent_file2}"
 }

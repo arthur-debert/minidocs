@@ -1,6 +1,6 @@
 # Minidocs
 
-Minidocs is an ultra-lightweight documentation generator. no frills: concatc
+Minidocs is an ultra-lightweight documentation generator. no frills: concat
 multiples files into a single document, adding a title separator.
 
 ## FEATURES
@@ -8,7 +8,7 @@ multiples files into a single document, adding a title separator.
 - Combine multiple text files
 - Title Separator
 - Flexible file selection
-- [optional] Line Numbers: either per file or global (userfull for addressing
+- [optional] Line Numbers: either per file or global (useful for addressing
   sections)
 - [optional] Add table of contents
 
@@ -28,31 +28,31 @@ Minidocs offers three ways to specify the files you want to bundle:
 
 1. **Explicit File List:** Provide a list of files directly as arguments.
 
-    ```bash
-    minidocs file1.txt file2.md chapter3.txt
-    ```
+   ```bash
+   minidocs file1.txt file2.md chapter3.txt
+   ```
 
 2. **Directory:** Specify a directory, and Minidocs will include all `.txt` and
-    `.md` files found within it.
+   `.md` files found within it.
 
-    ```bash
-    minidocs docs/
-    ```
+   ```bash
+   minidocs docs/
+   ```
 
 3. **Bundle File:** Create a text file (e.g., `bundle.txt`) where each line
-    contains the path to a file you want to include. Minidocs will read this
-    file and bundle the listed files.
+   contains the path to a file you want to include. Minidocs will read this file
+   and bundle the listed files.
 
-    ```text
-    # bundle.txt
-    file1.txt
-    docs/chapter2.md
-    /path/to/another_file.txt
-    ```
+   ```text
+   # bundle.txt
+   file1.txt
+   docs/chapter2.md
+   /path/to/another_file.txt
+   ```
 
-    ```bash
-    minidocs bundle.txt
-    ```
+   ```bash
+   minidocs bundle.txt
+   ```
 
 ## Options
 

@@ -146,7 +146,7 @@ EOF
 #######################################
 read_file_list() {
 	local file_list="$1"
-	local found_files=0
+	local -i found_files=0
 	local has_errors=false
 	local -a files=()
 
@@ -179,7 +179,7 @@ read_file_list() {
 	fi
 
 	# Set the global FILES_TO_BUNDLE variable with the expanded file list
-	FILES_TO_BUNDLE=("${files[@]}")
+	FILES_TO_BUNDLE+=("${files[@]}")
 	log "Found $found_files files in list"
 	return 0
 }
@@ -260,6 +260,70 @@ parse_args() {
 }
 
 #######################################
+# Expand a single argument into file paths
+# This function processes one argument and returns the expanded file paths
+# Globals:
+#   None
+# Arguments:
+#   arg - The argument to expand (file, directory, or bundle)
+# Returns:
+#   0 if expansion was successful, 1 otherwise
+#   Sets FILES_TO_BUNDLE with the expanded file paths
+#######################################
+expand_argument() {
+	local arg="$1"
+	local -i found_files=0
+	local has_errors=false
+
+	log "Expanding argument: $arg"
+
+	# Check if argument is a directory
+	if [[ -d "$arg" ]]; then
+		log "Argument is a directory, expanding: $arg"
+		local dir_path="$(realpath "$arg")/"
+
+		# Find all .txt and .md files in the directory
+		local -a dir_files=()
+		while IFS= read -r -d $'\0' file; do
+			log "File found in directory: $file"
+			# Skip the script itself
+			if [[ "$file" == "$0" ]]; then
+				continue
+			fi
+			dir_files+=("$file")
+			((found_files++))
+		done < <(find "$dir_path" -type f \( -name "*.txt" -o -name "*.md" \) -print0)
+
+		if [[ ${#dir_files[@]} -eq 0 ]]; then
+			echo "Error: No .txt or .md files found in directory: $arg" >&2
+			has_errors=true
+		else
+			FILES_TO_BUNDLE+=("${dir_files[@]}")
+			log "Added ${#dir_files[@]} files from directory: $arg"
+		fi
+	# Check if argument is a bundle file (.bundle or .bundle.txt extension)
+	elif [[ -f "$arg" && ("$arg" == *.bundle || "$arg" == *.bundle.txt) ]]; then
+		log "Argument is a bundle file, processing: $arg"
+		if ! read_file_list "$arg"; then
+			echo "Error: Failed to process bundle file: $arg" >&2
+			has_errors=true
+		else
+			log "Successfully processed bundle file: $arg"
+		fi
+	# Regular file
+	elif [[ -f "$arg" ]]; then
+		log "Argument is a regular file, adding: $arg"
+		FILES_TO_BUNDLE+=("$arg")
+		((found_files++))
+	else
+		echo "Error: File or directory not found: $arg" >&2
+		has_errors=true
+	fi
+
+	[[ "$has_errors" == "true" && $found_files -eq 0 ]] && return 1 || return 0
+}
+
+#######################################
 # Find files to bundle based on various input methods
 # This function processes user requested sources and determines
 # the actual files to include in the bundle
@@ -275,120 +339,37 @@ get_files() {
 	local src_dir="$1"
 	shift
 	local -a file_args=("$@")
-	local first_arg="$1"            # Capture the first argument directly
-	local -a files_to_bundle=()     # Initialize as empty array
-
-	log "File arguments count: ${#file_args[@]}"
-	log "File argument 0: '${file_args[0]}'"
-	log "File argument 0 exists check: $([[ -f "${file_args[0]}" ]] && echo "exists" || echo "does not exist")"
-	log "File argument 0 is directory check: $([[ -d "${file_args[0]}" ]] && echo "is directory" || echo "is not directory")"
-
 	# Reset the global array
+	FILES_TO_BUNDLE=()
+
 	log "Starting get_files function with src_dir: $src_dir and ${#file_args[@]} file arguments"
 	log "Processing user requested sources: ${file_args[*]}"
-	# Case 1: No file arguments provided
+
+	# If no arguments provided, search current directory
 	if [[ ${#file_args[@]} -eq 0 ]]; then
 		log "No file arguments provided, searching current directory"
-		find_files "$src_dir" || return 1
+		expand_argument "$src_dir" || return 1
 		return 0
 	fi
 
-	# Filter out empty arguments
-	if [[ -z "${file_args[0]}" && -z "$first_arg" ]]; then
-		log "First argument is empty, this might cause issues"
-		echo "Warning: Empty file argument detected" >&2
-		return 1
-	fi
-
-	# Case 2: Single file or directory argument
-	if [[ ${#file_args[@]} -eq 1 ]]; then
-		local arg
-
-		# Use the first argument directly if the array element is empty
-		if [[ -z "${file_args[0]}" && -n "$first_arg" ]]; then
-			arg="$first_arg"
-			log "Using direct first argument: $arg"
-		else
-			arg="${file_args[0]}"
-		fi
-
-		if [[ -d "$arg" ]]; then
-			# Single directory argument - find files in that directory
-			local dir_path="$(realpath "$arg")/"
-			log "Using directory: $dir_path"
-			find_files "$dir_path" || return 1
-			return 0
-		elif [[ -f "$arg" ]]; then
-			# Single file argument - could be a list file or a file to bundle
-			log "Single file argument exists: $arg (full path: $(realpath "$arg"))"
-			log "Single file argument: $arg"
-
-			# Check if it might be a list file (only if it looks like a text file)
-			if file "$arg" | grep -q "text"; then
-				# Try to read as a list file first
-				log "Attempting to read as a list of files"
-				if read_file_list "$arg"; then
-					log "Successfully read as a list file, FILES_TO_BUNDLE now has ${#FILES_TO_BUNDLE[@]} files"
-					return 0
-				else
-					# If not a valid list file, add the file itself to bundle
-					log "Not a valid list file, adding as a single file"
-					files_to_bundle=("$arg")
-					log "files_to_bundle[0]: '${files_to_bundle[0]}'"
-					# Set the global FILES_TO_BUNDLE variable
-					FILES_TO_BUNDLE=("${files_to_bundle[@]}")
-					log "FILES_TO_BUNDLE[0]: '${FILES_TO_BUNDLE[0]}'"
-				fi
-			else
-				# Not a text file, just add it directly
-				log "File is not a text file, adding directly: $arg"
-				files_to_bundle=("$arg")
-				# Set the global FILES_TO_BUNDLE variable
-				FILES_TO_BUNDLE=("${files_to_bundle[@]}")
-			fi
-
-			return 0
-		else
-			echo "Warning: File or directory not found: $arg" >&2
-			return 1
-		fi
-	fi
-
-	# Case 3: Multiple file arguments - add each valid file
-	log "Processing multiple file arguments"
-	local found_files=0
-local has_errors=false
-	# Initialize files_to_bundle with valid files
-	files_to_bundle=()
-
-	# Process each file argument
-	log "Processing ${#file_args[@]} file arguments"
+	# Process each argument
+	local -i success_count=0
+	local has_errors=false
 
 	for file in "${file_args[@]}"; do
-		if [[ -f "$file" ]]; then
-			log "Adding file: $file"
-			files_to_bundle+=("$file")
-			((found_files++))
+		if expand_argument "$file"; then
+			((success_count++))
 		else
-			if [[ -d "$file" ]]; then
-				echo "Error: Cannot read directory $file as a file. Exiting." >&2
-				log "File $file is a directory, skipping"
-				has_errors=true
-			else
-				echo "Error: File not found: $file. Exiting." >&2
-				has_errors=true
-			fi
+			has_errors=true
 		fi
 	done
 
-	if [[ $found_files -eq 0 ]]; then
-		echo "Error: None of the specified files were found. Exiting." >&2
+	if [[ $success_count -eq 0 ]]; then
+		echo "Error: No valid files found from any of the arguments. Exiting." >&2
 		return 1
 	fi
 
-	# Set the global FILES_TO_BUNDLE variable
-	log "Setting FILES_TO_BUNDLE with ${#files_to_bundle[@]} files: ${files_to_bundle[*]}"
-	FILES_TO_BUNDLE=("${files_to_bundle[@]}")
+	log "Final FILES_TO_BUNDLE has ${#FILES_TO_BUNDLE[@]} files"
 	return 0
 }
 
@@ -400,43 +381,7 @@ local has_errors=false
 # Arguments:
 #   script_dir - Directory to search in
 #######################################
-find_files() {
-	local src_dir="$1"
-	log "Starting find_files function with src_dir: $src_dir"
-	log "No files specified, finding all files in current directory"
-	log "Running find command on $src_dir to locate .txt and .md files"
-
-	# Use process substitution instead of pipe to avoid subshell issues
-	local -a found_files=()
-
-	# Process the find results
-	while IFS= read -r -d $'\0' file; do
-		log "File found: $file"
-		# Skip the script itself
-		if [[ "$file" == "$0" ]]; then
-			continue
-		fi
-
-		# Skip bundle files
-		if [[ "$file" == *.bundle ]]; then
-			continue
-		fi
-
-		found_files+=("$file")
-	done < <(find "$src_dir" -type f \( -name "*.txt" -o -name "*.md" \) -print0)
-
-	# Check if we found any files and add them to the global array
-	if [[ ${#found_files[@]} -eq 0 ]]; then
-		echo "Error: No .txt or .md files found in $src_dir. Exiting." >&2
-		return 1
-	fi
-
-	# Set the global FILES_TO_BUNDLE variable with the found files
-	FILES_TO_BUNDLE=("${found_files[@]}")
-	log "Found files details: ${#found_files[@]} files with extensions .txt and .md"
-	log "Found ${#FILES_TO_BUNDLE[@]} files to bundle"
-	return 0
-}
+# Note: This function has been replaced by expand_argument
 
 #######################################
 # Generate table of contents

@@ -36,9 +36,9 @@ When a directory is provided along with other arguments:
 
 Bundle File Arguments
 --------------------
-Bundle files are text files containing a list of file paths, one per line:
+Bundle files are text files with a `.bundle` or `.bundle.txt` extension containing a list of file paths, one per line:
 
-When a bundle file is the SOLE argument:
+When a bundle file is provided (regardless of position in arguments list):
 - Minidocs reads the bundle file and extracts the list of paths
 - Lines starting with # are treated as comments and ignored
 - Each path in the bundle is processed as if it were provided directly
@@ -46,9 +46,9 @@ When a bundle file is the SOLE argument:
 - Warnings are displayed for non-existent files listed in the bundle
 - Valid files are included in the output with appropriate headers
 
-When a bundle file is provided along with other arguments:
-- The bundle file is treated as a regular file
-- Its content is included directly in the output
+Regular text files (without .bundle or .bundle.txt extension):
+- Are treated as regular files, even if they contain file paths
+- Their content is included directly in the output
 - The paths listed inside are NOT processed as separate files
 
 Mixed Scenarios
@@ -59,9 +59,9 @@ Minidocs can handle various mixed scenarios:
    - Existing files are included in the output
    - Warnings are displayed for non-existent files
 
-2. Directory with only one file:
-   - If it's the sole argument, the single file is included
-   - The directory scanning logic works the same regardless of file count
+2. Directory arguments:
+   - Directories are always processed recursively to find .txt and .md files
+   - The directory scanning logic works the same regardless of position in arguments list
 
 3. Directory with mixed file types:
    - Only .txt and .md files are included
@@ -75,7 +75,7 @@ Edge Cases
 
 3. Bundle file with absolute paths: Absolute paths are supported and processed correctly.
 
-4. Nested directories: When a directory is the sole argument, all .txt and .md files in nested subdirectories are included recursively.
+4. Nested directories: When a directory is provided, all .txt and .md files in nested subdirectories are included recursively.
 
 Implementation Notes
 -------------------

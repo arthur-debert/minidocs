@@ -1,0 +1,33 @@
+#!/usr/bin/env zunit
+# shellcheck shell=bash
+# shellcheck disable=SC2154  # state is set by the zunit framework
+
+@test 'Test directory with other arguments' {
+  # Verify the directory and file exist
+  local test_dir="${ZUNIT_DIR}/_support/fixtures"
+  local test_file="${ZUNIT_DIR}/_support/fixtures/fixture1.txt"
+
+  run test -d "${test_dir}"
+  assert "${state}" equals 0
+
+  run test -f "${test_file}"
+  assert "${state}" equals 0
+
+  # Run minidocs with the directory and a file - both should be processed
+  run "${minidocs}" "${test_file}" "${test_dir}"
+
+  # Check exit status - should be successful
+  assert "${state}" equals 0
+
+  # Verify output contains content from the file and directory
+  assert "${output}" contains "This is the first test fixture file"
+  assert "${output}" contains "This is the second test fixture file"
+
+  # Verify file headers are included
+  assert "${output}" contains "fixture1.txt"
+  assert "${output}" contains "fixture2.txt"
+
+  # Verify no warning about directory
+  local count_error=$(echo "${output}" | grep -c "Error: Cannot read directory ${test_dir} as a file")
+  assert "${count_error}" equals 0
+}

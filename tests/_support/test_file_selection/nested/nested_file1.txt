@@ -1,0 +1,2 @@
+This is a test file in the nested directory.
+It should be included when the parent directory is passed as an argument.

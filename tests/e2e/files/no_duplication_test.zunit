@@ -1,0 +1,38 @@
+#!/usr/bin/env zunit
+# shellcheck shell=bash
+# shellcheck disable=SC2154  # state is set by the zunit framework
+
+@test 'Test no duplication of content with multiple file arguments' {
+  # Set up test files
+  local test_file1="${ZUNIT_DIR}/_support/fixtures/fixture1.txt"
+  local test_file2="${ZUNIT_DIR}/_support/fixtures/fixture2.txt"
+
+  # Verify the test files exist
+  run test -f "${test_file1}"
+  assert "${state}" equals 0
+
+  run test -f "${test_file2}"
+  assert "${state}" equals 0
+
+  # Run minidocs with multiple file arguments
+  run "${minidocs}" "${test_file1}" "${test_file2}"
+
+  # Check exit status
+  assert "${state}" equals 0
+
+  # Count occurrences of fixture1.txt in the output
+  local count_fixture1=$(echo "${output}" | grep -c "fixture1.txt")
+  assert "${count_fixture1}" equals 1
+
+  # Count occurrences of fixture2.txt in the output
+  local count_fixture2=$(echo "${output}" | grep -c "fixture2.txt")
+  assert "${count_fixture2}" equals 1
+
+  # Count occurrences of "This is the first test fixture file" in the output
+  local count_content1=$(echo "${output}" | grep -c "This is the first test fixture file")
+  assert "${count_content1}" equals 1
+
+  # Count occurrences of "This is the second test fixture file" in the output
+  local count_content2=$(echo "${output}" | grep -c "This is the second test fixture file")
+  assert "${count_content2}" equals 1
+}

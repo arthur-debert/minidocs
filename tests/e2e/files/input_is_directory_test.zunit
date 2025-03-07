@@ -1,0 +1,35 @@
+#!/usr/bin/env zunit
+# shellcheck shell=bash
+# shellcheck disable=SC2154  # state is set by the zunit framework
+
+@test 'Test file selection with directory argument (sole argument)' {
+  # Verify the directory exists
+  local test_dir="${ZUNIT_DIR}/_support/fixtures"
+
+  run test -d "${test_dir}"
+  assert "${state}" equals 0
+
+  # Verify the fixture files exist
+  local test_file1="${test_dir}/fixture1.txt"
+  local test_file2="${test_dir}/fixture2.txt"
+
+  run test -f "${test_file1}"
+  assert "${state}" equals 0
+
+  run test -f "${test_file2}"
+  assert "${state}" equals 0
+
+  # Run minidocs with the directory as the sole argument
+  run "${minidocs}" "${test_dir}"
+
+  # Check exit status
+  assert "${state}" equals 0
+
+  # Verify output contains content from both files in the directory
+  assert "${output}" contains "This is the first test fixture file"
+  assert "${output}" contains "This is the second test fixture file"
+
+  # Verify file headers are included
+  assert "${output}" contains "fixture1.txt"
+  assert "${output}" contains "fixture2.txt"
+}

@@ -1,0 +1,22 @@
+1.
+shellcheck  doesn't officially support bash (but it works).
+the zunit tests file however, make it report  a bogus syntax errors
+[{
+	"resource": "/Users/adebert/h/minidocs/tests/unit/file_selection_unit_test.zunit",
+	"owner": "bash",
+	"severity": 8,
+	"message": "`}'",
+	"source": "bash",
+	"startLineNumber": 23,
+	"startColumn": 1,
+	"endLineNumber": 23,
+	"endColumn": 2
+}]
+you can ignore those
+
+you can ignore linting too, we'll do it once code works
+
+
+2. zunit's verbosity is passed to minidocs, hence:
+
+zunit run --verbose -> will run both in verbose modes

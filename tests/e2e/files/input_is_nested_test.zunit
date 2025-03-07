@@ -1,0 +1,18 @@
+#!/usr/bin/env zunit
+# shellcheck shell=bash
+# shellcheck disable=SC2154  # state is set by the zunit framework
+
+@test 'Test file selection with nested directories' {
+  # Set up test directory with nested structure
+  local test_dir="${ZUNIT_DIR}/_support/test_file_selection"
+
+  # Run minidocs with the directory as the sole argument
+  run "${minidocs}" "${test_dir}"
+
+  # Check exit status
+  assert "${state}" equals 0
+
+  # Verify output contains content from nested directory
+  assert "${output}" contains "nested_file1.txt"
+  assert "${output}" contains "nested_file2.md"
+}

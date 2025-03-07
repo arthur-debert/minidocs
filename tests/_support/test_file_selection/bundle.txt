@@ -1,0 +1,5 @@
+tests/_support/fixtures/fixture1.txt
+tests/_support/fixtures/fixture2.txt
+tests/_support/test_file_selection/file1.txt
+# This is a comment and should be ignored
+tests/_support/test_file_selection/file2.md

@@ -1,0 +1,29 @@
+#!/usr/bin/env zunit
+# shellcheck shell=bash
+# shellcheck disable=SC2154  # state is set by the zunit framework
+
+@test 'Test file selection with mix of existing and non-existing files' {
+  # Set up test files
+  local existing_file1="${ZUNIT_DIR}/_support/fixtures/fixture1.txt"
+  local existing_file2="${ZUNIT_DIR}/_support/fixtures/fixture2.txt"
+  local nonexistent_file1="${ZUNIT_DIR}/_support/fixtures/nonexistent1.txt"
+  local nonexistent_file2="${ZUNIT_DIR}/_support/fixtures/nonexistent2.txt"
+
+  # Run minidocs with a mix of existing and non-existing files
+  run "${minidocs}" "${existing_file1}" "${nonexistent_file1}" "${existing_file2}" "${nonexistent_file2}" || true
+
+  # Check exit status - should still be successful since some valid files were found
+  assert "${state}" equals 0
+
+  # Verify output contains content from existing files
+  assert "${output}" contains "This is the first test fixture file"
+  assert "${output}" contains "This is the second test fixture file"
+
+  # Verify file headers for existing files are included
+  assert "${output}" contains "fixture1.txt"
+  assert "${output}" contains "fixture2.txt"
+
+  # Verify error messages for non-existent files
+  assert "${output}" contains "Error: File or directory not found: ${nonexistent_file1}"
+  assert "${output}" contains "Error: File or directory not found: ${nonexistent_file2}"
+}

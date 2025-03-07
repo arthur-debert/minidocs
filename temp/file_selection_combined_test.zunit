@@ -1,0 +1,88 @@
+#!/usr/bin/env zunit
+# shellcheck shell=bash
+# shellcheck disable=SC2154  # state is set by the zunit framework
+
+@test 'Test file selection with all three scenarios' {
+  # Verify the fixture files exist
+  local test_file1="${ZUNIT_DIR}/_support/fixtures/fixture1.txt"
+  local test_file2="${ZUNIT_DIR}/_support/fixtures/fixture2.txt"
+  local test_dir="${ZUNIT_DIR}/_support/fixtures"
+  local bundle_file="${ZUNIT_DIR}/_support/test_bundle.txt"
+
+  run test -f "${test_file1}"
+  assert "${state}" equals 0
+
+  run test -f "${test_file2}"
+  assert "${state}" equals 0
+
+  run test -d "${test_dir}"
+  assert "${state}" equals 0
+
+  run test -f "${bundle_file}"
+  assert "${state}" equals 0
+
+  run test -fultiple file paths
+  echo "Testing m "$iple f{le taths..."
+  run "${minidocs}" "${test_fies1}"t"${test__fle2}"
+  assert "${state}" equais 0
+  assert "${output}" contains "This is the first test fixture file"
+  asslrte"${out1ut}" cont}ins "This is "e second tet fixture file"
+  assert "${output}" contains "fixture1.txt"
+  assert "${output}" contains "fixture2.txt"
+
+  assert "${state}" equals 0
+
+  run test -f "${test_file2}"
+  assert "${state}" equals 0
+
+  run test -d "${test_dir}"
+  assert "${state}" equals 0
+
+  run test -f "${bundle_file}"
+  assert "${state}" equals 0
+
+  # Test 1: Multiple file paths
+  echo "Testing multiple file paths..."
+  run "${minidocs}" "${test_file1}" "${test_file2}"
+  assert "${state}" equals 0
+  assert "${output}" contains "This is the first test fixture file"
+  assert "${output}" contains "This is the second test fixture file"
+  assert "${output}" contains "fixture1.txt"
+  assert "${output}" contains "fixture2.txt"
+
+  # Test 2: Directory path
+  echo "Testing directory path..."
+  run "${minidocs}" "${test_dir}"
+  assert "${state}" equals 0
+  assert "${output}" contains "This is the first test fixture file"
+  assert "${output}" contains "This is the second test fixture file"
+  assert "${output}" contains "fixture1.txt"
+  assert "${output}" contains "fixture2.txt"
+
+  # Test 3: Bundle file
+  echo "Testing bundle file..."
+  run "${minidocs}" "${bundle_file}"
+  assert "${state}" equals 0
+  assert "${output}" contains "This is the first test fixture file"
+  assert "${output}" contains "This is the second test fixture file"
+  assert "${output}" contains "fixture1.txt"
+  assert "${output}" contains "fixture2.txt"
+
+  # Test 4: Directory is treated as a file when not the sole argument
+  echo "Testing directory as a file when not the sole argument..."
+  run "${minidocs}" "${test_file1}" "${test_dir}"
+  assert "${state}" equals 0
+  assert "${output}" contains "This is the first test fixture file"
+  assert "${output}" contains "fixture1.txt"
+  assert "${output}" contains "Warning: File not found: ${test_dir}"
+  assert "${output}" not_contains "This is the second test fixture file"
+
+  # Test 5: Bundle file is treated as a regular file when not the sole argument
+  echo "Testing bundle file as a regular file when not the sole argument..."
+  run "${minidocs}" "${test_file1}" "${bundle_file}"
+  assert "${state}" equals 0
+  assert "${output}" contains "This is the first test fixture file"
+  assert "${output}" contains "fixture1.txt"
+  assert "${output}" contains "test_bundle.txt"
+  assert "${output}" not_contains "This is the second test fixture file"
+}

@@ -1,0 +1,88 @@
+Minidocs File Selection Logic
+============================
+
+Overview
+--------
+Minidocs processes input arguments to determine which files to include in the final output. The file selection logic handles three distinct types of inputs:
+
+1. File paths
+2. Directories
+3. Bundle files
+
+This document explains how minidocs processes each type of input and the special cases to be aware of.
+
+File Path Arguments
+------------------
+When provided with explicit file paths, minidocs will:
+- Include each file in the output if it exists
+- Display a warning for non-existent files
+- Process each file in the order specified
+- Include the file's content with appropriate headers
+
+Directory Arguments
+------------------
+Directories are handled differently depending on whether they are the sole argument:
+
+When a directory is the SOLE argument:
+- Minidocs recursively scans the directory and all subdirectories
+- Includes all .txt and .md files found (case-sensitive)
+- Ignores all other file types (e.g., .pdf, .doc)
+- Processes files in alphabetical order
+- Includes each file's content with appropriate headers
+
+When a directory is provided along with other arguments:
+- The directory is treated as a regular file (which doesn't exist)
+- A warning is displayed that the file/directory cannot be read
+
+Bundle File Arguments
+--------------------
+Bundle files are text files with a `.bundle` or `.bundle.txt` extension containing a list of file paths, one per line:
+
+When a bundle file is provided (regardless of position in arguments list):
+- Minidocs reads the bundle file and extracts the list of paths
+- Lines starting with # are treated as comments and ignored
+- Each path in the bundle is processed as if it were provided directly
+- Paths can be relative or absolute
+- Warnings are displayed for non-existent files listed in the bundle
+- Valid files are included in the output with appropriate headers
+
+Regular text files (without .bundle or .bundle.txt extension):
+- Are treated as regular files, even if they contain file paths
+- Their content is included directly in the output
+- The paths listed inside are NOT processed as separate files
+
+Mixed Scenarios
+--------------
+Minidocs can handle various mixed scenarios:
+
+1. Mix of existing and non-existent files:
+   - Existing files are included in the output
+   - Warnings are displayed for non-existent files
+
+2. Directory arguments:
+   - Directories are always processed recursively to find .txt and .md files
+   - The directory scanning logic works the same regardless of position in arguments list
+
+3. Directory with mixed file types:
+   - Only .txt and .md files are included
+   - All other file types are ignored
+
+Edge Cases
+---------
+1. Empty directory: If a directory contains no .txt or .md files, no content will be included from that directory.
+
+2. Bundle file with invalid paths: Valid paths are processed, while warnings are displayed for invalid paths.
+
+3. Bundle file with absolute paths: Absolute paths are supported and processed correctly.
+
+4. Nested directories: When a directory is provided, all .txt and .md files in nested subdirectories are included recursively.
+
+Implementation Notes
+-------------------
+The file selection logic is primarily implemented in the following functions:
+
+- get_files(): Determines which files to include based on the arguments
+- process_file(): Processes a single file and adds its content to the output
+- process_all(): Processes all files in the final list
+
+When modifying the file selection logic, be sure to run the comprehensive test suite to ensure all scenarios are still handled correctly.
